@@ -3,12 +3,15 @@ import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { FcGoogle } from "react-icons/fc";
 import { HiArrowNarrowRight } from "react-icons/hi";
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { useUser } from '../../context/UserContext';
 import StatisticsSidebar from '../StatisticsSidebar';
 import { images } from '../../assets/assets';
 import { authService } from '../../services/authService';
 
 const LoginForm = () => {
     const navigate = useNavigate();
+    const { login } = useUser(); // Use UserContext
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -33,10 +36,13 @@ const LoginForm = () => {
         setError(null);
 
         try {
-            await authService.login({
+            const response = await authService.login({
                 email: formData.email,
                 password: formData.password
             });
+
+            // Use UserContext login method
+            await login(response.access_token, response.user);
 
             if (formData.rememberMe) {
                 localStorage.setItem('rememberMe', 'true');
@@ -44,13 +50,13 @@ const LoginForm = () => {
                 localStorage.removeItem('rememberMe');
             }
 
+            toast.success('Đăng nhập thành công!');
             navigate('/homepage');
         } catch (error) {
             console.error('Login failed:', error);
-            setError(
-                error.response?.data?.message ||
-                'Đăng nhập không thành công. Vui lòng kiểm tra email và mật khẩu.'
-            );
+            const message = error.response?.data?.message || 'Đăng nhập không thành công. Vui lòng kiểm tra email và mật khẩu.';
+            setError(message);
+            toast.error(message);
         } finally {
             setIsLoading(false);
         }
@@ -73,6 +79,7 @@ const LoginForm = () => {
         } catch (error) {
             console.error('Google login failed:', error);
             setError('Đăng nhập Google không thành công. Vui lòng thử lại.');
+            toast.error('Đăng nhập Google không thành công. Vui lòng thử lại.');
         }
     };
 
@@ -102,7 +109,7 @@ const LoginForm = () => {
                                     name="email"
                                     value={formData.email}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                                     placeholder="Nhập email của bạn"
                                     required
                                 />
@@ -120,7 +127,7 @@ const LoginForm = () => {
                                         name="password"
                                         value={formData.password}
                                         onChange={handleChange}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                                         placeholder="Nhập mật khẩu"
                                         required
                                     />

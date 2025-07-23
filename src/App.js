@@ -11,37 +11,41 @@ import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
 import { ModalProvider } from './context/ModalContext';
 import { BasketProvider } from './context/BasketContext';
+import { UserProvider } from './context/UserContext';
 import GoogleCallback from './components/auth/GoogleCallback';
-
-import CheckoutCalculation from  './pages/CheckoutCalculationPage';
-// import DistanceCalculator from './pages/DistanceCalculator';
+import FavouriteStores from './pages/FavouriteStorePage';
+import CheckoutCalculation from './pages/CheckoutCalculationPage';
+import StoreList from './pages/StoreList';
 
 function App() {
   return (
     <BrowserRouter>
-      <BasketProvider>
-        <ModalProvider>
-          <div className="font-sans">
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/homepage" element={<HomePage />} />
-              <Route path="/ingredients-bank" element={<IngredientBankPage />} />
-              <Route path="/dishes-bank" element={<DishesPage />} />
-              <Route path="/basket" element={<BasketPage />} />
-              <Route path="/saved-baskets" element={<SavedBasketPage />} />
-              <Route path='/login' element={<LoginForm />} />
-              <Route path='/register' element={<RegisterForm />} />
-              <Route path="/auth/google/callback" element={<GoogleCallback />} />
-
-              <Route path='/calculate' element={<CheckoutCalculation />} />
-              {/* <Route path='/distance' element={<DistanceCalculator />} /> * */}
-            </Routes>
-            <ToastContainer
-              position="bottom-right" />
-          </div>
-        </ModalProvider>
-      </BasketProvider>
+      <UserProvider>
+        <BasketProvider>
+          <ModalProvider>
+            <div className="font-sans">
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/homepage" element={<HomePage />} />
+                <Route path="/ingredients-bank" element={<IngredientBankPage />} />
+                <Route path="/dishes-bank" element={<DishesPage />} />
+                <Route path="/basket" element={<BasketPage />} />
+                <Route path="/saved-baskets" element={<SavedBasketPage />} />
+                <Route path='/login' element={<LoginForm />} />
+                <Route path='/register' element={<RegisterForm />} />
+                <Route path="/auth/google/callback" element={<GoogleCallback />} />
+                <Route path="/favourite-stores" element={<FavouriteStores />} />
+                <Route path='/calculate' element={<CheckoutCalculation />} />
+                <Route path="/stores" element={<StoreList />} />
+              </Routes> 
+              <ToastContainer
+                position="bottom-right" />
+            </div>
+          </ModalProvider>
+        </BasketProvider>
+      </UserProvider>
     </BrowserRouter>
+
   );
 }
 

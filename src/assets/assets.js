@@ -24,6 +24,7 @@ import tomImg from './images/tom.jpg';
 import bhxLogo from './images/bachhoaxanh.webp';
 import coopfoodLogo from './images/coopfood.jpg';
 import winmartLogo from './images/winmart.jpg';
+import backgroundImage from './images/background.jpg'
 
 export const images = {
     botmi: botmiImg,
@@ -51,7 +52,8 @@ export const images = {
     tom: tomImg,
     bhx: bhxLogo,
     coopfood: coopfoodLogo,
-    winmart: winmartLogo
+    winmart: winmartLogo,
+    background: backgroundImage
 };
 
 export const ingredientsList = [
@@ -144,15 +146,6 @@ export const restaurantsList = [
         address: '1 Nguyễn Hữu Cảnh, Quận 1, TP Hồ Chí Minh',
         rating: 4,
         match: 80,
-        totalPrice: 100000
-    },
-    {
-        id: 4,
-        name: "Bách hóa xanh",
-        image: images.bhx,
-        address: '1 Nguyễn Hữu Cảnh, Quận 1, TP Hồ Chí Minh',
-        rating: 4,
-        match: 90,
         totalPrice: 100000
     }
 ];

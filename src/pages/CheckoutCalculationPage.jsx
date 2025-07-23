@@ -90,16 +90,16 @@ const CheckoutCalculation = () => {
             // Group available products by category
             const productsByCategory = {};
             availableItems.forEach(item => {
-                const category = item.product_category || "Khác";
+                const category = item.product_category;
                 if (!productsByCategory[category]) {
                     productsByCategory[category] = [];
                 }
 
                 const product = {
                     id: item.product_sku,
-                    name: item.product_name || "Sản phẩm",
-                    name_vi: item.product_name || "Sản phẩm",
-                    name_en: item.product_name_en || "",
+                    name: item.product_name,
+                    name_vi: item.product_name,
+                    name_en: item.product_name_en,
                     image: item.product_image || null,
                     price: item.price_per_unit || 0,
                     quantity: item.quantity_needed || 1,
@@ -152,7 +152,7 @@ const CheckoutCalculation = () => {
                 name: item.ingredient_name || "Nguyên liệu",
                 image: null,
                 quantity: item.quantity_needed || 0,
-                unit: item.ingredient_unit || "g",
+                unit: item.ingredient_unit,
                 category: item.ingredient_category || "Khác"
             }));
 

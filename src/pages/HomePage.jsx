@@ -1,18 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FiSearch, FiChevronRight, FiChevronLeft, FiX, FiCamera, FiMessageSquare } from 'react-icons/fi';
+import { FiChevronRight, FiChevronLeft } from 'react-icons/fi';
 import ProductCard from '../components/ingredients/ProductCard';
 import DishCard from '../components/DishCard';
 import Header from '../components/Header';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import cartIcon from '../assets/images/cart.png';
 import { useModal } from '../context/ModalContext';
 import { ingredientService } from '../services/ingredientService';
 import { dishService } from '../services/dishService';
-import { restaurantsList } from '../assets/assets';
-import { toast } from 'react-toastify';
-import { aiService } from '../services/aiService';
-import { LuGoal, LuCamera, LuBrain } from "react-icons/lu";
+import { restaurantsList, images } from '../assets/assets';
 
 const HomePage = () => {
     const [ingredients, setIngredients] = useState([]);
@@ -29,13 +25,6 @@ const HomePage = () => {
 
     const [ingredientsScroll, setIngredientsScroll] = useState({ left: false, right: true });
     const [dishesScroll, setDishesScroll] = useState({ left: false, right: true });
-    const [searchQuery, setSearchQuery] = useState('');
-    const [isTextSearching, setIsTextSearching] = useState(false);
-    const [isImageUploading, setIsImageUploading] = useState(false);
-
-
-    const searchInputRef = useRef(null);
-    const [activeTab, setActiveTab] = useState('text');
 
     useEffect(() => {
         const fetchIngredients = async () => {
@@ -137,318 +126,45 @@ const HomePage = () => {
         }
     };
 
-    const [selectedImage, setSelectedImage] = useState(null);
-    const [previewUrl, setPreviewUrl] = useState('');
-
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        if (file.size > 5 * 1024 * 1024) {
-            toast.error('Kích thước file quá lớn. Vui lòng chọn file nhỏ hơn 5MB.');
-            return;
-        }
-
-        if (!file.type.startsWith('image/')) {
-            toast.error('Vui lòng chọn một file hình ảnh.');
-            return;
-        }
-
-        setSelectedImage(file);
-
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setPreviewUrl(reader.result);
-        };
-        reader.readAsDataURL(file);
-    };
-
-    const handleResetImage = () => {
-        setSelectedImage(null);
-        setPreviewUrl('');
-    };
-
-    const handleUpload = async () => {
-        if (!selectedImage) {
-            toast.error('Vui lòng chọn một hình ảnh trước.');
-            return;
-        }
-
-        setIsImageUploading(true);
-
-        try {
-            const dishResult = await aiService.getDishSuggestionByImage(selectedImage);
-
-            if (dishResult && dishResult.ingredients && dishResult.ingredients.length > 0) {
-                openModal('dish', {
-                    id: dishResult.id,
-                    name: dishResult.name || 'Món ăn đề xuất',
-                    vietnamese_name: dishResult.vietnamese_name || dishResult.name || 'Món ăn đề xuất',
-                    image: dishResult.imageUrl || selectedImage ? URL.createObjectURL(selectedImage) : null,
-                    ingredients: dishResult.ingredients.map(ingredient => ({
-                        id: ingredient.id,
-                        name: ingredient.name,
-                        vietnamese_name: ingredient.vietnamese_name || ingredient.name,
-                        image: ingredient.imageUrl,
-                        quantity: ingredient.quantity,
-                        unit: ingredient.unit,
-                        category: ingredient.category || 'Khác'
-                    })),
-                    servings: dishResult.servings || 1
-                });
-
-                toast.success('Đã nhận diện món ăn thành công!');
-            } else {
-                toast.warning('Không nhận diện được món ăn.');
-            }
-
-            setSelectedImage(null);
-            setPreviewUrl('');
-        } catch (error) {
-            console.error('Upload failed:', error);
-            toast.error('Có lỗi xảy ra khi tải lên hình ảnh. Vui lòng thử lại sau.');
-        } finally {
-            setIsImageUploading(false);
-        }
-    };
-
-    const handleSearchSubmit = async (e) => {
-        e.preventDefault();
-
-        let searchInput = '';
-        if (searchInputRef.current) {
-            searchInput = searchInputRef.current.value.trim();
-        }
-
-        if (!searchInput) return;
-
-        setSearchQuery(searchInput);
-        setIsTextSearching(true);
-
-        try {
-            const dishResult = await aiService.getDishSuggestionByText(searchInput);
-            console.log(dishResult)
-            if (dishResult && dishResult.ingredients && dishResult.ingredients.length > 0) {
-                openModal('dish', {
-                    id: dishResult.id || `suggested-${Date.now()}`,
-                    name: dishResult.name || 'Món ăn đề xuất',
-                    vietnamese_name: dishResult.vietnamese_name || dishResult.name || 'Món ăn đề xuất',
-                    image: dishResult.imageUrl || null,
-                    ingredients: dishResult.ingredients.map(ingredient => ({
-                        id: ingredient.id,
-                        name: ingredient.name,
-                        vietnamese_name: ingredient.vietnamese_name || ingredient.name,
-                        image: ingredient.imageUrl,
-                        quantity: ingredient.quantity,
-                        unit: ingredient.unit,
-                        category: ingredient.category || 'Khác'
-                    })),
-
-                    optionalIngredients: dishResult.optionalIngredients ? dishResult.optionalIngredients.map(ingredient => ({
-                        id: ingredient.id,
-                        name: ingredient.name,
-                        vietnamese_name: ingredient.vietnamese_name || ingredient.name,
-                        image: ingredient.imageUrl,
-                        quantity: ingredient.quantity,
-                        unit: ingredient.unit,
-                        category: ingredient.category || 'Khác'
-                    })) : [],
-                    servings: dishResult.servings || 1
-                });
-
-                toast.success('Đã tìm thấy gợi ý món ăn!');
-            } else {
-                toast.info('Không tìm thấy thông tin món ăn. Vui lòng thử lại với từ khóa khác.');
-            }
-        } catch (error) {
-            console.error('Error getting dish suggestion:', error);
-            toast.error('Có lỗi xảy ra khi tìm kiếm món ăn. Vui lòng thử lại sau.');
-        } finally {
-            setIsTextSearching(false);
-
-            if (searchInputRef.current) {
-                searchInputRef.current.value = '';
-            }
-        }
-    };
-
-    const focusSearchInput = () => {
-        if (searchInputRef.current) {
-            searchInputRef.current.focus();
-            setActiveTab('text');
-        }
-    };
-
     return (
         <div className="min-h-screen bg-gray-50">
             <Header />
             <Navbar />
 
             {/* Hero Section */}
-            {/* <section className="bg-gradient-to-r from-green-600 to-blue-600 py-12 mb-2">
-                <div className="container mx-auto px-4">
-                    <div className="text-center mb-8">
-                        <h1 className="text-4xl font-bold text-white mb-2">Mua sắm thông minh cùng AI</h1>
-                        <p className="text-white text-lg opacity-90">Chỉ cần nói hoặc tải lên ảnh, chúng tôi sẽ giúp bạn chuẩn bị đầy đủ nguyên liệu</p>
-                    </div>
+            {/* Hero Section với Background Grocery Store */}
+            <section
+                className="relative py-20 mb-8 overflow-hidden"
+                style={{
+                        backgroundImage: `url(${images.background})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        backgroundRepeat: 'no-repeat'
+                    }}
+            >
+                {/* Overlay để tạo độ tương phản cho text */}
+                <div className="absolute inset-0 bg-black bg-opacity-40"></div>
 
-                    <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
-                        <div className="flex border-b">
-                            <button
-                                className={`flex-1 py-4 px-6 flex items-center justify-center gap-2 font-medium transition-all duration-300 ${activeTab === 'text'
-                                    ? 'text-green-600 border-b-2 border-green-600 translate-y-[1px]'
-                                    : 'text-gray-500 hover:text-gray-700'}`}
-                                onClick={() => setActiveTab('text')}
-                            >
-                                <FiMessageSquare size={20} className={`transition-transform duration-300 ${activeTab === 'text' ? 'scale-110' : ''}`} />
-                                <span>Nhập món muốn nấu</span>
-                            </button>
-                            <button
-                                className={`flex-1 py-4 px-6 flex items-center justify-center gap-2 font-medium transition-all duration-300 ${activeTab === 'image'
-                                    ? 'text-green-600 border-b-2 border-green-600 translate-y-[1px]'
-                                    : 'text-gray-500 hover:text-gray-700'}`}
-                                onClick={() => {
-                                    setActiveTab('image');
-                                    window.scrollTo({
-                                        top: 0,
-                                        behavior: 'smooth'
-                                    });
-                                }}
-                            >
-                                <FiCamera size={20} className={`transition-transform duration-300 ${activeTab === 'image' ? 'scale-110' : ''}`} />
-                                <span>Tải ảnh lên</span>
-                            </button>
-                        </div>
-
-                        <div className="p-6">
-                            <div className={`transition-all duration-500 ${activeTab === 'text' ? 'opacity-100 transform translate-x-0' : 'opacity-0 absolute -translate-x-full'}`}>
-                                {activeTab === 'text' && (
-                                    <form onSubmit={handleSearchSubmit} className="relative">
-                                        <input
-                                            ref={searchInputRef}
-                                            type="text"
-                                            placeholder="Hôm nay bạn muốn ăn gì? VD: Tôi muốn ăn phở bò..."
-                                            className="w-full py-4 pl-12 pr-32 border border-gray-300 rounded-full text-lg"
-                                        />
-                                        <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-xl" />
-                                        <button
-                                            type="submit"
-                                            disabled={isTextSearching}
-                                            className={`absolute right-2 top-1/2 transform -translate-y-1/2 bg-green-600 text-white px-6 py-3 rounded-full flex items-center text-base hover:bg-green-700 transition-all ${isTextSearching ? 'opacity-70 cursor-wait' : ''}`}
-                                        >
-                                            {isTextSearching ? (
-                                                <>
-                                                    <div className="animate-spin h-5 w-5 mr-2 border-2 border-white border-t-transparent rounded-full"></div>
-                                                    <span>Đang xử lý...</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <img src={cartIcon} alt="" className="h-5 w-5 mr-2" />
-                                                    <span>Đi chợ</span>
-                                                    <FiChevronRight className="ml-1" />
-                                                </>
-                                            )}
-                                        </button>
-                                    </form>
-                                )}
-                            </div>
-                            <div className={`transition-all duration-500 ${activeTab === 'image' ? 'opacity-100 transform translate-x-0' : 'opacity-0 absolute translate-x-full'}`}>
-                                {activeTab === 'image' && (
-                                    <div className="flex flex-col items-center animate-fade-in">
-                                        <div className="w-full flex space-x-4">
-                                            <div className="flex-grow border-2 border-dashed border-gray-300 rounded-lg p-4 bg-white">
-                                                <div className="flex flex-col items-center justify-center min-h-40">
-                                                    <input
-                                                        type="file"
-                                                        id="image-upload"
-                                                        className="hidden"
-                                                        accept="image/*"
-                                                        onChange={handleImageChange}
-                                                    />
-                                                    {!previewUrl ? (
-                                                        <label htmlFor="image-upload" className="cursor-pointer flex flex-col items-center justify-center w-full">
-                                                            <div className="mb-3 bg-gray-100 p-4 rounded-full animate-pulse">
-                                                                <FiCamera className="w-8 h-8 text-gray-500" />
-                                                            </div>
-                                                            <div className="text-center">
-                                                                <p className="text-base font-medium text-gray-700 mb-1">Tải ảnh món ăn lên</p>
-                                                                <p className="text-xs text-gray-500">Kích thước tối đa 5MB.</p>
-                                                            </div>
-                                                        </label>
-                                                    ) : (
-                                                        <div className="relative w-full animate-fade-in">
-                                                            <img src={previewUrl} alt="Preview" className="w-full max-h-64 object-contain" />
-                                                            <button
-                                                                onClick={handleResetImage}
-                                                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center"
-                                                            >
-                                                                <FiX />
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center">
-                                                <button
-                                                    className={`bg-green-600 text-white px-6 py-4 rounded-lg flex items-center justify-center text-base hover:bg-green-700 transition-colors ${isImageUploading || !selectedImage ? 'opacity-70 cursor-not-allowed' : ''}`}
-                                                    onClick={handleUpload}
-                                                    disabled={isImageUploading || !selectedImage}
-                                                >
-                                                    {isImageUploading ? (
-                                                        <>
-                                                            <div className="animate-spin h-5 w-5 mr-2 border-2 border-white border-t-transparent rounded-full"></div>
-                                                            <span>Đang xử lý...</span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <img src={cartIcon} alt="" className="h-5 w-5 mr-2" />
-                                                            <span>Nhận diện</span>
-                                                            <FiChevronRight className="ml-1" />
-                                                        </>
-                                                    )}
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <p className="text-sm text-gray-500 mt-3 text-center">
-                                            Tải ảnh món ăn bạn muốn nấu, AI sẽ nhận diện và gợi ý nguyên liệu cần mua
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                {/* Content */}
+                <div className="container mx-auto px-4 relative z-10">
+                    <div className="text-center max-w-4xl mx-auto">
+                        <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 drop-shadow-lg">
+                            Ứng dụng gợi ý cửa hàng mua sắm thông minh
+                        </h1>
+                        <p className="text-white text-xl md:text-2xl mb-8 drop-shadow-md">
+                            Khám phá nguyên liệu tươi ngon và món ăn ngon miệng từ các đối tác uy tín
+                        </p>
                     </div>
                 </div>
-            </section> */}
 
-            {/* <section className="bg-gradient-to-r from-green-600 to-blue-600 py-3 mb-8">
-                <div className="container mx-auto px-4">
-                    <div className="text-center mb-8">
-                        <h1 className="text-4xl font-bold text-white mb-2">Hệ thống khuyến nghị siêu thị tiện lợi</h1>
-                        <p className="text-white text-lg opacity-90">Chỉ cần nói hoặc tải lên ảnh, chúng tôi sẽ giúp bạn chuẩn bị đầy đủ nguyên liệu</p>
-                    </div>
-                </div>
-            </section> */}
+                {/* Decorative elements */}
+                <div className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-gray-50 to-transparent"></div>
+            </section>
 
             <div className="container mx-auto px-4 py-4">
-                {/* Featured badges
-                <div className="flex flex-wrap gap-4 mb-8 justify-center">
-                    <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-full flex items-center">
-                        <LuGoal className='w-5 h-5 me-1' />
-                        <span className="font-medium"> Dự đoán thông minh</span>
-                    </div>
-                    <div className="bg-green-100 text-green-800 px-4 py-2 rounded-full flex items-center">
-                        <LuCamera className='w-5 h-5 me-1' />
-                        <span className="font-medium"> Nhận diện hình ảnh</span>
-                    </div>
-                    <div className="bg-purple-100 text-purple-800 px-4 py-2 rounded-full flex items-center">
-                        <LuBrain className='w-5 h-5 me-1' />
-                        <span className="font-medium"> Gợi ý nguyên liệu</span>
-                    </div>
-                </div> */}
-
                 {/* Ingredients Section */}
-                <section className="mb-8">
-                    <h2 className="text-2xl font-bold text-gray-800">Danh sách thực phẩm</h2>
+                <section className="mb-8" id="ingredients-section">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-4">Danh sách thực phẩm</h2>
                     {errorIngredients ? (
                         <div className="bg-red-100 text-red-700 p-4 rounded-lg mt-4">
                             {errorIngredients}
@@ -470,10 +186,10 @@ const HomePage = () => {
                                     <div key={ingredient.id || ingredient.name} className="flex-shrink-0 w-64">
                                         <ProductCard
                                             id={ingredient.id}
-                                            vietnamese_name={ingredient.vietnamese_name}
-                                            name={ingredient.name}
+                                            vietnamese_name={ingredient.name}
+                                            name={ingredient.name_en}
                                             unit={ingredient.unit}
-                                            image={ingredient.imageUrl || ingredient.image}
+                                            image={ingredient.image}
                                             category={ingredient.category}
                                         />
                                     </div>
@@ -503,7 +219,7 @@ const HomePage = () => {
 
                 {/* Dishes Section */}
                 <section className="mb-8">
-                    <h2 className="text-2xl font-bold text-gray-800">Danh sách món ăn</h2>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-4">Danh sách món ăn</h2>
                     {errorDishes ? (
                         <div className="bg-red-100 text-red-700 p-4 rounded-lg mt-4">
                             {errorDishes}
@@ -522,11 +238,11 @@ const HomePage = () => {
                                 onScroll={() => handleScroll(dishesRef, setDishesScroll)}
                             >
                                 {dishes.map((dish) => (
-                                    <div key={dish.id || dish.name} className="flex-shrink-0 w-64">
+                                    <div key={dish.id} className="flex-shrink-0 w-64">
                                         <DishCard
-                                            id={dish.id || dish.name}
-                                            image={dish.imageUrl || dish.image}
-                                            name={dish.vietnamese_name || dish.name}
+                                            id={dish.id}
+                                            image={dish.image}
+                                            name={dish.vietnamese_name}
                                             ingredientCount={dish.ingredients?.length || 0}
                                             ingredients={dish.ingredients || []}
                                         />
@@ -555,35 +271,9 @@ const HomePage = () => {
                     )}
                 </section>
 
-                {/* Call to Action Section */}
-                {/* <section className="mb-12 bg-gray-50 p-8 rounded-lg border border-gray-200 shadow-sm">
-                    <div className="text-center mb-6">
-                        <h2 className="text-2xl font-bold mb-2">Chưa tìm thấy món ăn bạn muốn?</h2>
-                        <p className="text-gray-600">Hãy thử sử dụng công cụ tìm kiếm thông minh của chúng tôi</p>
-                    </div>
-
-                    <div className="flex flex-col md:flex-row gap-4 max-w-2xl mx-auto">
-                        <button
-                            onClick={focusSearchInput}
-                            className="flex-1 bg-white border border-green-600 text-green-600 px-6 py-3 rounded-lg flex items-center justify-center shadow-sm hover:bg-green-50 transition-colors"
-                        >
-                            <FiMessageSquare className="mr-2" />
-                            <span>Nhập món ăn</span>
-                        </button>
-
-                        <button
-                            onClick={() => setActiveTab('image')}
-                            className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg flex items-center justify-center shadow-sm hover:bg-green-700 transition-colors"
-                        >
-                            <FiCamera className="mr-2" />
-                            <span>Tải ảnh lên</span>
-                        </button>
-                    </div>
-                </section> */}
-
                 {/* Partner Restaurants Section */}
                 <section>
-                    <h2 className="text-2xl font-bold text-gray-800">Siêu thị, nhà cung cấp liên kết</h2>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-4">Siêu thị, nhà cung cấp liên kết</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                         {restaurants.map((restaurant) => (
                             <div
@@ -607,14 +297,6 @@ const HomePage = () => {
                                     </div>
                                     <div className="text-xs text-gray-500 mb-2">Siêu thị & nhà cung cấp</div>
 
-                                    {/* Địa chỉ */}
-                                    <div className="flex items-center mt-3">
-                                        <svg className="w-4 h-4 text-gray-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                        </svg>
-                                        <p className="text-xs text-gray-600">{restaurant.address || '1 Nguyễn Hữu Cảnh, Quận 1, TP Hồ Chí Minh'}</p>
-                                    </div>
                                 </div>
                             </div>
                         ))}

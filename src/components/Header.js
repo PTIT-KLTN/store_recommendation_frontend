@@ -104,8 +104,8 @@ const Header = ({ basketCount }) => {
 
             {/* Basket Count */}
             <div className="flex items-center space-x-4">
-                <Link to="/basket" className="flex items-center bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors">
-                    <img src={cartIcon} alt="Cart" className="h-7 w-7 mr-2" />
+                <Link to="/basket" className="flex items-center bg-green-600 text-sm text-white px-4 py-2 rounded hover:bg-green-700 transition-colors">
+                    <img src={cartIcon} alt="Cart" className="h-5 w-5 mr-2" />
                     <span className="font-bold mr-1">{getItemCount()}</span>
                     <span>sản phẩm</span>
                 </Link>

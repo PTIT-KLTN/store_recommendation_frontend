@@ -104,21 +104,8 @@ const SavedBasketsList = ({ baskets, onRefresh, onAddToCart }) => {
     };
 
     return (
-        <div className="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-green-600 to-green-700 py-4 px-6">
-                <div className="flex items-center">
-                    <div className="w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mr-3">
-                        <FiShoppingBag className="text-white w-5 h-5" />
-                    </div>
-                    <h2 className="text-white text-xl font-semibold">Giỏ Hàng Đã Lưu</h2>
-                    {Array.isArray(baskets) && baskets.length > 0 && (
-                        <span className="ml-3 bg-white bg-opacity-20 text-white px-2 py-1 rounded-full text-sm font-medium">
-                            {baskets.length}
-                        </span>
-                    )}
-                </div>
-            </div>
+        <div className="bg-white rounded-lg overflow-hidden border border-gray-300">
+          
 
             {/* Baskets List */}
             <div className="divide-y divide-gray-100">

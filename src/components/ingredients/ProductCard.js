@@ -80,12 +80,12 @@ const ProductCard = ({ id, vietnamese_name, name, unit, image, category }) => {
             {/* Product info and add button */}
             <div className="flex justify-between items-center px-4 py-3 bg-white border-t border-gray-100">
                 <div className="flex-1 min-w-0 mr-3">
-                    <h3 className="font-medium text-gray-900 text-lg truncate" title={vietnamese_name}>
+                    <h3 className="font-medium text-gray-900 text-sm truncate" title={vietnamese_name}>
                         {vietnamese_name}
                     </h3>
                     
                     {name && name !== vietnamese_name && (
-                        <p className="text-gray-500 text-sm truncate" title={name}>
+                        <p className="text-gray-500 text-xs truncate" title={name}>
                             {name}
                         </p>
                     )}

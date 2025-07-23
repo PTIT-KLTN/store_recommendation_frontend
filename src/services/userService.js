@@ -19,6 +19,34 @@ export const userService = {
         }
     },
 
+    // Favourite Stores APIs
+    getFavouriteStores: async () => {
+        try {
+            const response = await axiosPrivate.get('/user/favourite-stores');
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    addFavouriteStore: async (storeData) => {
+        try {
+            const response = await axiosPrivate.post('/user/favourite-stores', storeData);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    removeFavouriteStore: async (storeId) => {
+        try {
+            const response = await axiosPrivate.delete(`/user/favourite-stores/${storeId}`);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
     saveUserToLocalStorage: (userData) => {
         if (userData) {
             const userToSave = {

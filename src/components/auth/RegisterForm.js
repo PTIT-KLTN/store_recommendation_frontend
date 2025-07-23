@@ -3,19 +3,22 @@ import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { FcGoogle } from "react-icons/fc";
 import { HiArrowNarrowRight } from "react-icons/hi";
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { useUser } from '../../context/UserContext';
 import StatisticsSidebar from '../StatisticsSidebar';
 import { images } from '../../assets/assets';
 import { authService } from '../../services/authService';
 
 const RegisterForm = () => {
     const navigate = useNavigate();
+    const { login } = useUser(); // Use UserContext
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
     const [formData, setFormData] = useState({
-        username: '',
+        fullname: '', // Changed from username to fullname
         email: '',
         password: '',
         confirmPassword: '',
@@ -58,19 +61,22 @@ const RegisterForm = () => {
         setIsLoading(true);
 
         try {
-            await authService.register({
-                username: formData.username,
+            const response = await authService.register({
+                fullname: formData.fullname, // Use fullname instead of username
                 email: formData.email,
                 password: formData.password
             });
 
+            // Use UserContext login method
+            await login(response.access_token, response.user);
+
+            toast.success('Đăng ký thành công!');
             navigate('/homepage');
         } catch (error) {
             console.error('Registration failed:', error);
-            setError(
-                error.response?.data?.message ||
-                'Đăng ký không thành công. Vui lòng thử lại sau.'
-            );
+            const message = error.response?.data?.message || 'Đăng ký không thành công. Vui lòng thử lại sau.';
+            setError(message);
+            toast.error(message);
         } finally {
             setIsLoading(false);
         }
@@ -97,6 +103,7 @@ const RegisterForm = () => {
         } catch (error) {
             console.error('Google register failed:', error);
             setError('Đăng ký Google không thành công. Vui lòng thử lại.');
+            toast.error('Đăng ký Google không thành công. Vui lòng thử lại.');
         }
     };
 
@@ -119,14 +126,14 @@ const RegisterForm = () => {
 
                         <form onSubmit={handleSubmit}>
                             <div className="mb-4">
-                                <label htmlFor="username" className="block text-gray-700 text-sm font-medium mb-2">Họ và tên</label>
+                                <label htmlFor="fullname" className="block text-gray-700 text-sm font-medium mb-2">Họ và tên</label>
                                 <input
                                     type="text"
-                                    id="username"
-                                    name="username"
-                                    value={formData.username}
+                                    id="fullname"
+                                    name="fullname"
+                                    value={formData.fullname}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                                     placeholder="Nhập họ và tên của bạn"
                                     required
                                 />
@@ -140,7 +147,7 @@ const RegisterForm = () => {
                                     name="email"
                                     value={formData.email}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                                     placeholder="Nhập email của bạn"
                                     required
                                 />
@@ -156,7 +163,7 @@ const RegisterForm = () => {
                                             name="password"
                                             value={formData.password}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                                             placeholder="Tạo mật khẩu"
                                             required
                                         />
@@ -179,7 +186,7 @@ const RegisterForm = () => {
                                             name="confirmPassword"
                                             value={formData.confirmPassword}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                                             placeholder="Nhập lại mật khẩu"
                                             required
                                         />

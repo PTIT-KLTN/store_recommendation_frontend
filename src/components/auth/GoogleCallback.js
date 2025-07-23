@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { useUser } from '../../context/UserContext';
 import axios from 'axios';
 import { FiAlertTriangle } from "react-icons/fi";
 
 const GoogleCallback = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const { login } = useUser(); // Use UserContext
     const [isProcessing, setIsProcessing] = useState(true);
     const [error, setError] = useState(null);
 
@@ -31,17 +34,11 @@ const GoogleCallback = () => {
                     code: code
                 });
                 
-                // Lưu tokens
+                // Use UserContext login method
                 if (response.data.access_token) {
-                    localStorage.setItem('accessToken', response.data.access_token);
-                    localStorage.setItem('refreshToken', response.data.refresh_token);
+                    await login(response.data.access_token, response.data.user);
                     
-                    // Lưu user info
-                    if (response.data.user) {
-                        localStorage.setItem('user', JSON.stringify(response.data.user));
-                    }
-                    
-                    // Redirect về homepage
+                    toast.success(response.data.message || 'Đăng nhập Google thành công!');
                     navigate('/homepage');
                 } else {
                     throw new Error('No access token received');
@@ -49,22 +46,28 @@ const GoogleCallback = () => {
                 
             } catch (error) {
                 console.error('Google callback error:', error);
-                setError(error.message);
+                const errorMessage = error.response?.data?.message || error.message || 'Đăng nhập Google thất bại';
+                setError(errorMessage);
                 setIsProcessing(false);
                 
-                navigate('/login');
+                toast.error(errorMessage);
+                
+                // Redirect to login after a delay
+                setTimeout(() => {
+                    navigate('/login');
+                }, 3000);
             }
         };
         
         handleCallback();
-    }, [location, navigate]);
+    }, [location, navigate, login]);
     
     if (error) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="max-w-md w-full bg-white p-6 rounded-lg shadow-md text-center">
                     <div className="text-red-600 mb-4">
-                        <FiAlertTriangle  className="mx-auto h-12 w-12" />
+                        <FiAlertTriangle className="mx-auto h-12 w-12" />
                     </div>
                     <h2 className="text-xl font-semibold text-gray-900 mb-2">Đăng nhập thất bại</h2>
                     <p className="text-gray-600 mb-4">{error}</p>

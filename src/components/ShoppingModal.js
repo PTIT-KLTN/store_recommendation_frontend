@@ -76,7 +76,7 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                 const selectedMainIngredients = (dishWithIngredients.ingredients || [])
                     .filter(ing => selectedIngredients[ing.id || ing.name])
                     .map(ingredient => ({
-                        id: ingredient.id || `ingredient-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                        id: ingredient.id,
                         name: ingredient.ingredient_name,
                         vietnamese_name: ingredient.vietnamese_name,
                         imageUrl: ingredient.image,
@@ -88,7 +88,7 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                 const selectedOptIngredients = (dishWithIngredients.optionalIngredients || [])
                     .filter(ing => selectedOptionalIngredients[ing.id || ing.name])
                     .map(ingredient => ({
-                        id: ingredient.id || `ingredient-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                        id: ingredient.id,
                         name: ingredient.name,
                         vietnamese_name: ingredient.vietnamese_name,
                         imageUrl: ingredient.imageUrl,
@@ -100,7 +100,7 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                 const allSelectedIngredients = [...selectedMainIngredients, ...selectedOptIngredients];
 
                 const dish = {
-                    id: dishWithIngredients.id || `dish-${Date.now()}`,
+                    id: dishWithIngredients.id,
                     name: dishWithIngredients.name,
                     vietnamese_name: dishWithIngredients.vietnamese_name,
                     imageUrl: dishWithIngredients.image,

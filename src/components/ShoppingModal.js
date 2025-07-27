@@ -21,23 +21,28 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                     setDishWithIngredients(itemData);
                 } else if (itemData.id) {
                     const dish = getDishWithIngredients(itemData.id);
-                    setDishWithIngredients(dish || itemData);
+                    setDishWithIngredients(dish);
                 } else {
                     setDishWithIngredients(itemData);
                 }
 
+                // FIX 1: Auto-select ALL main ingredients (set to true)
                 const initialSelected = {};
                 if (itemData.ingredients) {
                     itemData.ingredients.forEach(ing => {
-                        initialSelected[ing.id || ing.name] = true;
+                        // Use ingredient_name as key since there's no id field
+                        const key = ing.ingredient_name;
+                        initialSelected[key] = true;
                     });
                 }
                 setSelectedIngredients(initialSelected);
 
+                // FIX 2: Auto-select ALL optional ingredients (set to true instead of false)
                 const initialOptionalSelected = {};
                 if (itemData.optionalIngredients) {
                     itemData.optionalIngredients.forEach(ing => {
-                        initialOptionalSelected[ing.id || ing.name] = false;
+                        const key = ing.ingredient_name;
+                        initialOptionalSelected[key] = true;
                     });
                 }
                 setSelectedOptionalIngredients(initialOptionalSelected);
@@ -73,28 +78,37 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
     const handleAddToCart = async () => {
         try {
             if (type === 'dish' && dishWithIngredients) {
+                // FIX 3: Use ingredient_name for filtering
                 const selectedMainIngredients = (dishWithIngredients.ingredients || [])
-                    .filter(ing => selectedIngredients[ing.id || ing.name])
+                    .filter(ing => {
+                        const key = ing.ingredient_name;
+                        return selectedIngredients[key];
+                    })
                     .map(ingredient => ({
-                        id: ingredient.id,
+                        id: ingredient._id, // Use _id from MongoDB
                         name: ingredient.ingredient_name,
                         vietnamese_name: ingredient.vietnamese_name,
                         imageUrl: ingredient.image,
+                        net_unit_value: ingredient.net_unit_value,
                         quantity: ingredient.quantity,
-                        unit: ingredient.unit || 'g',
-                        category: ingredient.category || 'Khác'
+                        unit: ingredient.unit,
+                        category: ingredient.category
                     }));
 
                 const selectedOptIngredients = (dishWithIngredients.optionalIngredients || [])
-                    .filter(ing => selectedOptionalIngredients[ing.id || ing.name])
+                    .filter(ing => {
+                        const key = ing.ingredient_name;
+                        return selectedOptionalIngredients[key];
+                    })
                     .map(ingredient => ({
-                        id: ingredient.id,
-                        name: ingredient.name,
+                        id: ingredient._id, // Use _id from MongoDB
+                        name: ingredient.ingredient_name,
                         vietnamese_name: ingredient.vietnamese_name,
-                        imageUrl: ingredient.imageUrl,
+                        imageUrl: ingredient.image,
+                        net_unit_value: ingredient.net_unit_value,
                         quantity: ingredient.quantity,
-                        unit: ingredient.unit || 'g',
-                        category: ingredient.category || 'Khác'
+                        unit: ingredient.unit,
+                        category: ingredient.category
                     }));
 
                 const allSelectedIngredients = [...selectedMainIngredients, ...selectedOptIngredients];
@@ -111,17 +125,18 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                 await addDish(dish);
                 toast.success(`Đã thêm ${dish.vietnamese_name || dish.name} vào giỏ hàng!`);
             } else if ((type === 'ingredients' || type === 'search') && itemData) {
-                const ingredientsArray = Array.isArray(itemData) ? itemData : [itemData];
-
+                const ingredientsArray = itemData;
+                console.log (ingredientsArray)
                 for (const ingredient of ingredientsArray) {
                     const processedIngredient = {
-                        id: ingredient.id || `ingredient-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                        id: ingredient.id,
                         vietnamese_name: ingredient.vietnamese_name,
                         name: ingredient.name,
                         image: ingredient.image,
                         quantity: quantity,
+                        net_unit_value: ingredient.net_unit_value,
                         unit: ingredient.unit || 'g',
-                        category: ingredient.category || 'Khác'
+                        category: ingredient.category
                     };
 
                     await addIngredient(processedIngredient);
@@ -133,7 +148,7 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                     toast.success(
                         `Đã thêm ${ingredientsArray.length > 1
                             ? 'các nguyên liệu'
-                            : ingredientsArray[0].vietnamese_name || ingredientsArray[0].name} vào giỏ hàng!`
+                            : ingredientsArray[0].vietnamese_name} vào giỏ hàng!`
                     );
                 }
             }
@@ -169,25 +184,25 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
         title = dishWithIngredients.vietnamese_name || dishWithIngredients.name;
         image = dishWithIngredients.imageUrl || dishWithIngredients.image;
         ingredients = (dishWithIngredients.ingredients || []).map(ing => ({
-            id: ing.id || ing.name,
-            name: ing.vietnamese_name || ing.name,
-            category: ing.category || 'Khác',
-            quantity: ing.quantity || 1,
-            unit: ing.unit || 'g'
+            id: ing.ingredient_name, // Use ingredient_name as unique key
+            name: ing.vietnamese_name,
+            category: ing.category,
+            quantity: ing.quantity,
+            unit: ing.unit
         }));
 
         optionalIngredients = (dishWithIngredients.optionalIngredients || []).map(ing => ({
-            id: ing.id || ing.name,
-            name: ing.vietnamese_name || ing.name,
-            category: ing.category || 'Khác',
-            quantity: ing.quantity || 1,
-            unit: ing.unit || 'g'
+            id: ing.ingredient_name, // Use ingredient_name as unique key
+            name: ing.vietnamese_name,
+            category: ing.category,
+            quantity: ing.quantity,
+            unit: ing.unit
         }));
     } else if (type === 'ingredients') {
-        if (Array.isArray(itemData) && itemData.length > 1) {
+        if (itemData.length > 1) {
             title = "Danh sách nguyên liệu";
             showMultipleIngredients = true;
-            image = itemData[0]?.imageUrl || itemData[0]?.image || '';
+            image = itemData[0]?.image;
         } else {
             const ingredient = Array.isArray(itemData) ? itemData[0] : itemData;
             title = ingredient?.vietnamese_name || ingredient?.name || 'Nguyên liệu';
@@ -231,7 +246,7 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                                                     <input
                                                         type="checkbox"
                                                         id={`ing-${ing.id}`}
-                                                        checked={selectedIngredients[ing.id] || false}
+                                                        checked={selectedIngredients[ing.id]} // FIX 4: Use ing.id consistently
                                                         onChange={() => toggleIngredient(ing.id)}
                                                         className="w-4 h-4 text-green-600 border-gray-300 rounded"
                                                     />
@@ -265,7 +280,7 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                                                     <input
                                                         type="checkbox"
                                                         id={`opt-ing-${ing.id}`}
-                                                        checked={selectedOptionalIngredients[ing.id] || false}
+                                                        checked={selectedOptionalIngredients[ing.id]} 
                                                         onChange={() => toggleIngredient(ing.id, true)}
                                                         className="w-4 h-4 text-green-600 border-gray-300 rounded"
                                                     />
@@ -330,10 +345,7 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                             </div>
                             <div className="flex items-center">
                                 <input
-                                    type="number"
-                                    min="1"
-                                    step="1"
-                                    value={quantity}
+                                    type="number" min="1" step="1" value={quantity}
                                     onChange={(e) => handleQuantityChange(e.target.value)}
                                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-full text-center"
                                 />

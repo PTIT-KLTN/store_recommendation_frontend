@@ -408,11 +408,12 @@ const IngredientBankPage = () => {
                                 {ingredients.map((ingredient) => (
                                     <ProductCard
                                         key={ingredient._id}
-                                        id={ingredient._id || ingredient.id}
+                                        id={ingredient._id}
                                         vietnamese_name={ingredient.name}
                                         name={ingredient.name_en}
                                         unit={ingredient.unit}
                                         image={ingredient.image}
+                                        net_unit_value={ingredient.net_unit_value}
                                         category={ingredient.category}
                                     />
                                 ))}

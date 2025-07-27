@@ -21,6 +21,7 @@ const formatBasketData = (basketItems) => {
         unit: item.unit,
         imageUrl: item.image,
         category: item.category,
+        net_unit_value: item.net_unit_value,
         quantity: parseFloat(item.quantity) || 1
     }));
 
@@ -91,7 +92,6 @@ export const basketService = {
     getSavedBaskets: async () => {
         try {
             const response = await axiosPrivate.get('/basket/savedBaskets');
-            console.log('basket:', response)
             return response.data.saved_baskets;
         } catch (error) {
             console.error("Error fetching saved baskets:", error);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FiArrowLeft } from 'react-icons/fi';
-import { HiOutlineLocationMarker, HiStar, HiChevronDown, HiChevronUp, HiSwitchHorizontal, HiCheck } from "react-icons/hi";
+import { FiArrowLeft, FiHeart } from 'react-icons/fi';
+import { HiOutlineLocationMarker, HiStar, HiChevronDown, HiChevronUp, HiSwitchHorizontal, HiHeart } from "react-icons/hi";
 import { images } from '../assets/assets';
 import Header from '../components/Header';
 import Navbar from '../components/Navbar';
@@ -9,6 +9,7 @@ import { useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import SimilarProductsModal from '../components/SimilarProductsModal';
+import { userService } from '../services/userService';
 
 const CheckoutCalculation = () => {
     const location = useLocation();
@@ -22,6 +23,8 @@ const CheckoutCalculation = () => {
     const [calculationResult, setCalculationResult] = useState(null);
     const [expandedStoreId, setExpandedStoreId] = useState(null);
     const [selectedProducts, setSelectedProducts] = useState({});
+    const [favouriteStores, setFavouriteStores] = useState([]);
+    const [savingFavourite, setSavingFavourite] = useState({});
 
     // Modal state
     const [modalOpen, setModalOpen] = useState(false);
@@ -39,6 +42,21 @@ const CheckoutCalculation = () => {
                     const parsedBasket = JSON.parse(storedBasket);
                     setBasketItems(parsedBasket);
                     combineIngredients(parsedBasket);
+                }
+
+                // Load favourite stores
+                try {
+                    const favouriteStoresData = await userService.getFavouriteStores();
+                    if (Array.isArray(favouriteStoresData)) {
+                        setFavouriteStores(favouriteStoresData);
+                    } else if (favouriteStoresData && Array.isArray(favouriteStoresData.favourite_stores)) {
+                        setFavouriteStores(favouriteStoresData.favourite_stores);
+                    } else {
+                        setFavouriteStores([]);
+                    }
+                } catch (error) {
+                    console.error("Error loading favourite stores:", error);
+                    setFavouriteStores([]);
                 }
 
                 const calculationData = location.state?.calculationResult;
@@ -100,19 +118,20 @@ const CheckoutCalculation = () => {
                     name: item.product_name,
                     name_vi: item.product_name,
                     name_en: item.product_name_en,
-                    image: item.product_image || null,
-                    price: item.price_per_unit || 0,
-                    quantity: item.quantity_needed || 1,
-                    unit: item.product_unit || "cái",
-                    cost: item.total_price || 0,
-                    sku: item.product_sku || "",
+                    image: item.product_image,
+                    price: item.price_per_unit,
+                    quantity: item.quantity_needed,
+                    unit: item.product_unit,
+                    cost: item.total_price,
+                    sku: item.product_sku,
                     category: category,
-                    chainStore: storeRec.store_chain || "",
-                    discount_percent: item.discount_percent || 0,
-                    promotion: item.promotion || "",
-                    match_score: item.match_score || 0,
-                    matched_field: item.matched_field || "",
-                    original_price: item.original_price || 0,
+                    chainStore: storeRec.store_chain,
+                    discount_percent: item.discount_percent,
+                    promotion: item.promotion,
+                    match_score: item.match_score,
+                    matched_field: item.matched_field,
+                    original_price: item.original_price,
+                    product_net_unit_value: item.product_net_unit_value,
                     ingredientName: item.ingredient_name,
                     ingredientVietnameseName: item.ingredient_vietnamese_name
                 };
@@ -123,20 +142,21 @@ const CheckoutCalculation = () => {
                     name: alt.product_name,
                     name_vi: alt.product_name,
                     name_en: alt.product_name_en,
-                    image: alt.product_image || null,
-                    price: alt.price_per_unit || 0,
-                    quantity: item.quantity_needed || 1,
-                    unit: alt.product_unit || "cái",
-                    cost: alt.total_price || 0,
-                    sku: alt.product_sku || "",
-                    category: alt.product_category || category,
-                    chainStore: storeRec.store_chain || "",
-                    discount_percent: alt.discount_percent || 0,
-                    promotion: alt.promotion || "",
-                    match_score: alt.match_score || 0,
-                    matched_field: alt.matched_field || "",
-                    original_price: alt.original_price || 0,
-                    rank: alt.rank || 0,
+                    image: alt.product_image,
+                    price: alt.price_per_unit,
+                    quantity: alt.quantity_needed,
+                    unit: alt.product_unit,
+                    cost: alt.total_price,
+                    sku: alt.product_sku,
+                    category: alt.product_category,
+                    chainStore: storeRec.store_chain,
+                    discount_percent: alt.discount_percent,
+                    promotion: alt.promotion,
+                    match_score: alt.match_score,
+                    matched_field: alt.matched_field,
+                    original_price: alt.original_price,
+                    product_net_unit_value: alt.product_net_unit_value,
+                    rank: alt.rank,
                     ingredientName: item.ingredient_name,
                     ingredientVietnameseName: item.ingredient_vietnamese_name
                 }));
@@ -148,34 +168,33 @@ const CheckoutCalculation = () => {
             // Process missing ingredients
             const lackIngredients = unavailableItems.map(item => ({
                 id: `missing-${Math.random().toString(36).substring(2, 9)}`,
-                vietnamese_name: item.ingredient_vietnamese_name || "",
-                name: item.ingredient_name || "Nguyên liệu",
+                vietnamese_name: item.ingredient_vietnamese_name,
+                name: item.ingredient_name,
                 image: null,
-                quantity: item.quantity_needed || 0,
+                quantity: item.quantity_needed,
                 unit: item.ingredient_unit,
-                category: item.ingredient_category || "Khác"
+                category: item.ingredient_category
             }));
 
             return {
-                id: storeRec.store_id || `store-${Math.random().toString(36).substring(2, 9)}`,
-                name: storeRec.store_name || "Cửa hàng",
-                address: storeRec.store_address || "Unknown Address",
-                phone: storeRec.store_phone || "",
+                id: storeRec.store_id,
+                name: storeRec.store_name,
+                address: storeRec.store_address,
+                phone: storeRec.store_phone,
                 logo: null,
-                rating: storeRec.store_rating || 0,
-                reviews_count: storeRec.store_reviews_count || 0,
-                distance: storeRec.distance_km || 0,
+                rating: storeRec.store_rating,
+                reviews_count: storeRec.store_reviews_count,
+                distance: storeRec.distance_km,
                 totalCost: storeRec.total_cost,
                 availableProducts: availableItems,
                 productsByCategory: productsByCategory,
                 lackIngredients: lackIngredients,
-                chain: storeRec.store_chain || "",
-                availabilityPercentage: storeRec.availability_percentage || 0,
-                foundIngredients: storeRec.found_ingredients || 0,
-                totalIngredients: result.total_ingredients || 0,
-                overallScore: storeRec.overall_score || 0,
-                scoreBreakdown: storeRec.score_breakdown || {},
-                calculationTime: result.calculation_time_ms || 0
+                chain: storeRec.store_chain,
+                availabilityPercentage: storeRec.availability_percentage,
+                foundIngredients: storeRec.found_ingredients,
+                totalIngredients: result.total_ingredients,
+                overallScore: storeRec.overall_score,
+                scoreBreakdown: storeRec.score_breakdown
             };
         });
 
@@ -189,34 +208,48 @@ const CheckoutCalculation = () => {
     const combineIngredients = (basket) => {
         const combined = {};
 
+        // Process standalone ingredients
         if (basket.ingredients && basket.ingredients.length > 0) {
             basket.ingredients.forEach(item => {
-                if (!combined[item.id]) {
-                    combined[item.id] = {
-                        ...item,
-                        totalQuantity: parseFloat(item.quantity) || 0.1,
-                        unit: item.unit
+                const key = item.name;
+                if (!combined[key]) {
+                    combined[key] = {
+                        id: item.id,
+                        name: item.name,
+                        vietnamese_name: item.vietnamese_name,
+                        image: item.image,
+                        unit: item.unit,
+                        category: item.category,
+                        totalQuantity: parseFloat(item.quantity)
                     };
                 } else {
-                    combined[item.id].totalQuantity += parseFloat(item.quantity) || 0.1;
+                    combined[key].totalQuantity += parseFloat(item.quantity);
                 }
             });
         }
 
+        // Process dish ingredients
         if (basket.dishes) {
             Object.values(basket.dishes).forEach(dish => {
                 if (dish.ingredients && dish.ingredients.length > 0) {
-                    const servings = parseInt(dish.servings, 10) || 1;
+                    const servings = parseInt(dish.servings, 10);
 
                     dish.ingredients.forEach(item => {
-                        if (!combined[item.id]) {
-                            combined[item.id] = {
-                                ...item,
-                                totalQuantity: (parseFloat(item.quantity) || 0.1) * servings,
-                                unit: item.unit
+                        const key = item.name;
+                        const dishQuantity = parseFloat(item.quantity) * servings;
+                        
+                        if (!combined[key]) {
+                            combined[key] = {
+                                id: item.id,
+                                name: item.name,
+                                vietnamese_name: item.vietnamese_name,
+                                image: item.imageUrl,
+                                unit: item.unit,
+                                category: item.category,
+                                totalQuantity: dishQuantity
                             };
                         } else {
-                            combined[item.id].totalQuantity += (parseFloat(item.quantity) || 0.1) * servings;
+                            combined[key].totalQuantity += dishQuantity;
                         }
                     });
                 }
@@ -280,7 +313,7 @@ const CheckoutCalculation = () => {
                     ...alternativeProduct,
                     originalProductId: productId,
                     isAlternative: true,
-                    alternatives: foundProduct.alternatives // Keep the alternatives list
+                    alternatives: foundProduct.alternatives
                 };
 
                 updatedStores[storeIndex].productsByCategory[foundCategory][productIndex] = updatedProduct;
@@ -289,10 +322,10 @@ const CheckoutCalculation = () => {
                 let newTotal = 0;
                 Object.values(updatedStores[storeIndex].productsByCategory).forEach(products => {
                     products.forEach(p => {
-                        newTotal += p.cost || 0;
+                        newTotal += p.cost;
                     });
                 });
-                updatedStores[storeIndex].totalPrice = newTotal;
+                updatedStores[storeIndex].totalCost = newTotal;
 
                 setSuggestedStores(updatedStores);
                 toast.success("Đã thay đổi sản phẩm thành công!");
@@ -301,8 +334,8 @@ const CheckoutCalculation = () => {
     };
 
     const openSimilarProductsModal = (product, store) => {
-        const alternatives = product.alternatives || [];
-        if (alternatives.length === 0) {
+        const alternatives = product.alternatives;
+        if (!alternatives || alternatives.length === 0) {
             toast.info("Không có sản phẩm thay thế cho sản phẩm này");
             return;
         }
@@ -320,6 +353,72 @@ const CheckoutCalculation = () => {
         setModalOpen(false);
     };
 
+    const isStoreFavourite = (storeId) => {
+        if (!Array.isArray(favouriteStores) || favouriteStores.length === 0) {
+            return false;
+        }
+        return favouriteStores.some(store => {
+            // Handle different possible store ID field names
+            return store.store_id === storeId || 
+                   store.id === storeId || 
+                   String(store.store_id) === String(storeId) ||
+                   String(store.id) === String(storeId);
+        });
+    };
+
+    const handleToggleFavouriteStore = async (store) => {
+        const storeId = store.id;
+        const isFavourite = isStoreFavourite(storeId);
+        
+        setSavingFavourite(prev => ({ ...prev, [storeId]: true }));
+
+        try {
+            if (isFavourite) {
+                // Remove from favourites
+                await userService.removeFavouriteStore(storeId);
+                setFavouriteStores(prev => {
+                    if (!Array.isArray(prev)) return [];
+                    return prev.filter(favStore => {
+                        const favStoreId = favStore.store_id || favStore.id;
+                        return String(favStoreId) !== String(storeId);
+                    });
+                });
+                toast.success("Đã xóa cửa hàng khỏi danh sách yêu thích");
+            } else {
+                // Add to favourites - match the fields from your API response
+                const storeData = {
+                    store_id: storeId,
+                    store_name: store.name,
+                    chain: store.chain,
+                    store_location: store.address,
+                    phone: store.phone,
+                    distance_km: store.distance,
+                    totalScore: store.rating,
+                    reviewsCount: store.reviews_count
+                };
+                console.log('Data to fav store: ',storeData)
+                const response = await userService.addFavouriteStore(storeData);
+                
+                // Handle different response formats
+                const newFavouriteStore = response.favourite_store || response || storeData;
+                setFavouriteStores(prev => {
+                    const currentFavs = Array.isArray(prev) ? prev : [];
+                    return [...currentFavs, newFavouriteStore];
+                });
+                toast.success("Đã thêm cửa hàng vào danh sách yêu thích");
+            }
+        } catch (error) {
+            console.error("Error toggling favourite store:", error);
+            if (isFavourite) {
+                toast.error("Không thể xóa cửa hàng khỏi danh sách yêu thích");
+            } else {
+                toast.error("Không thể thêm cửa hàng vào danh sách yêu thích");
+            }
+        } finally {
+            setSavingFavourite(prev => ({ ...prev, [storeId]: false }));
+        }
+    };
+
     const formatProductName = (product) => {
         if (product.name_vi && product.name_en && product.name_vi !== product.name_en) {
             return (
@@ -329,7 +428,7 @@ const CheckoutCalculation = () => {
                 </>
             );
         }
-        return <div className="font-medium">{product.name_vi || product.name}</div>;
+        return <div className="font-medium">{product.name_vi}</div>;
     };
 
     const renderRating = (rating, reviewsCount) => {
@@ -367,7 +466,6 @@ const CheckoutCalculation = () => {
 
     const renderCompactProduct = (product, store) => {
         const hasAlternatives = product.alternatives && product.alternatives.length > 0;
-        const isSelected = selectedProducts[`${store.id}-${product.id}`];
         const isAlternative = product.isAlternative === true;
 
         return (
@@ -376,8 +474,8 @@ const CheckoutCalculation = () => {
                     {/* Product image */}
                     <div className="w-16 h-16 flex-shrink-0 mr-3">
                         <img
-                            src={product.image || '/images/default-product.jpg'}
-                            alt={product.name_vi || product.name}
+                            src={product.image}
+                            alt={product.name_vi}
                             className="w-full h-full object-contain"
                             onError={(e) => {
                                 e.target.onerror = null;
@@ -392,7 +490,7 @@ const CheckoutCalculation = () => {
                         
                         {/* Ingredient mapping info */}
                         <div className="text-xs text-gray-500 mt-1">
-                            Cho: {product.ingredientVietnameseName || product.ingredientName}
+                            Cho: {product.ingredientVietnameseName}
                         </div>
                         
                         <div className="flex justify-between text-sm mt-1">
@@ -405,9 +503,9 @@ const CheckoutCalculation = () => {
                                 <span className="text-green-600 font-medium">{formatPrice(product.cost)}đ</span>
                             </div>
                             <div className="text-right text-gray-500">
-                                <div>{product.quantity} {product.unit}</div>
+                                <div>{product.quantity} x {product.unit}</div>
                                 {product.product_net_unit_value && (
-                                    <div className="text-xs">({product.product_net_unit_value}{product.product_unit}/sản phẩm)</div>
+                                    <div className="text-xs">({product.product_net_unit_value}{product.unit}/sản phẩm)</div>
                                 )}
                             </div>
                         </div>
@@ -477,19 +575,21 @@ const CheckoutCalculation = () => {
                             <div className="bg-green-600 p-4 -m-6 mb-6 rounded-t-lg">
                                 <h2 className="text-xl font-medium flex items-center text-white">
                                     <img src={images.cart} className="h-8 w-8 mr-2" alt="Cart icon" />
-                                    Tổng sản phẩm
+                                    Danh sách nguyên liệu cần mua
                                 </h2>
                             </div>
 
                             <div>
-                                <h3 className="text-xl font-bold mb-4 text-gray-800">Nguyên Liệu</h3>
+                                <h3 className="text-xl font-bold mb-4 text-gray-800">
+                                    Tổng cộng: {combinedIngredients.length} nguyên liệu
+                                </h3>
                                 <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
                                     {combinedIngredients.length > 0 ? (
                                         combinedIngredients.map((item) => (
                                             <div key={item.id} className="flex items-center border-b pb-4">
                                                 <div className="w-16 h-16 mr-4 flex-shrink-0 bg-gray-50 p-1 rounded">
                                                     <img
-                                                        src={item.image || item.imageUrl}
+                                                        src={item.image}
                                                         alt={item.name}
                                                         className="w-full h-full object-contain"
                                                         onError={(e) => {
@@ -499,9 +599,13 @@ const CheckoutCalculation = () => {
                                                     />
                                                 </div>
                                                 <div className="flex-grow">
-                                                    <div className="font-medium text-gray-800">{item.vietnamese_name || item.name}</div>
-                                                    <div className="text-gray-600 text-sm mt-1">
-                                                        {item.totalQuantity} {item.unit}
+                                                    <div className="font-medium text-gray-800">{item.vietnamese_name}</div>
+                                                    <div className="text-sm text-gray-500">{item.name}</div>
+                                                    <div className="text-gray-600 text-sm mt-1 font-semibold">
+                                                        {item.totalQuantity} x {item.unit}
+                                                    </div>
+                                                    <div className="text-xs text-gray-400">
+                                                        {item.category}
                                                     </div>
                                                 </div>
                                             </div>
@@ -520,16 +624,13 @@ const CheckoutCalculation = () => {
                             <div className="bg-green-600 p-4 -m-6 mb-6 rounded-t-lg">
                                 <h2 className="text-xl font-medium flex items-center text-white">
                                     <HiOutlineLocationMarker className="h-8 w-8 mr-2" />
-                                    Địa điểm đề xuất (Sắp xếp theo điểm tổng)
+                                    Cửa hàng đề xuất (Sắp xếp theo điểm tổng)
                                 </h2>
                             </div>
 
                             {/* Calculation summary */}
                             {calculationResult && (
                                 <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                                    <div className="text-sm text-blue-700">
-                                        <strong>Thời gian tính toán:</strong> {(calculationResult.calculation_time_ms / 1000).toFixed(2)}s
-                                    </div>
                                     <div className="text-sm text-blue-700">
                                         <strong>Tổng nguyên liệu:</strong> {calculationResult.total_ingredients}
                                     </div>
@@ -547,6 +648,24 @@ const CheckoutCalculation = () => {
                                                         <div className="flex items-center mb-2">
                                                             <h3 className="text-xl font-medium text-gray-800 mr-2">{store.name}</h3>
                                                             <span className="text-sm text-gray-500">({store.chain})</span>
+                                                            
+                                                            {/* Favourite store button */}
+                                                            <button
+                                                                onClick={() => handleToggleFavouriteStore(store)}
+                                                                disabled={savingFavourite[store.id]}
+                                                                className={`ml-3 p-1.5 rounded-full transition-colors ${
+                                                                    isStoreFavourite(store.id)
+                                                                        ? 'bg-red-100 text-red-500 hover:bg-red-200'
+                                                                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-red-500'
+                                                                }`}
+                                                                title={isStoreFavourite(store.id) ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"}
+                                                            >
+                                                                {savingFavourite[store.id] ? (
+                                                                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                                                                ) : (
+                                                                    <HiHeart className={`w-4 h-4 ${isStoreFavourite(store.id) ? 'fill-current' : ''}`} />
+                                                                )}
+                                                            </button>
                                                         </div>
 
                                                         <div className="flex items-center mb-2">
@@ -632,9 +751,9 @@ const CheckoutCalculation = () => {
                                                         {store.lackIngredients.map((item, index) => (
                                                             <div key={index} className="flex items-center bg-white p-2 rounded border border-yellow-200">
                                                                 <div className="flex-1">
-                                                                    <div className="text-xs font-medium text-gray-800">{item.vietnamese_name || item.name}</div>
+                                                                    <div className="text-xs font-medium text-gray-800">{item.vietnamese_name}</div>
                                                                     <div className="text-xs text-gray-600">
-                                                                        <span className="font-medium">{item.quantity}</span> {item.unit}
+                                                                        <span className="font-medium">{item.quantity}</span> x {item.unit}
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -649,7 +768,7 @@ const CheckoutCalculation = () => {
                                                     <h4 className="text-lg font-medium mb-4 text-gray-800">Chi tiết sản phẩm có sẵn</h4>
 
                                                     {/* Products by category */}
-                                                    {Object.entries(store.productsByCategory || {}).map(([category, products]) => (
+                                                    {Object.entries(store.productsByCategory).map(([category, products]) => (
                                                         <div key={category} className="mb-6">
                                                             <h5 className="font-medium text-green-700 mb-3 pb-1 border-b border-green-100">
                                                                 {category} ({products.length})
@@ -674,7 +793,7 @@ const CheckoutCalculation = () => {
                                                                     <div className="w-8 h-8 flex-shrink-0 mr-2 bg-white rounded-md p-1">
                                                                         <img
                                                                             src={product.image}
-                                                                            alt={product.name_vi || product.name}
+                                                                            alt={product.name_vi}
                                                                             className="w-full h-full object-contain"
                                                                             onError={(e) => {
                                                                                 e.target.onerror = null;
@@ -684,10 +803,10 @@ const CheckoutCalculation = () => {
                                                                     </div>
                                                                 )}
                                                                 <div className="flex-1 min-w-0">
-                                                                    <div className="font-medium text-xs truncate">{product.name_vi || product.name}</div>
+                                                                    <div className="font-medium text-xs truncate">{product.name_vi}</div>
                                                                     <div className="flex justify-between items-center text-xs">
                                                                         <div className="text-green-600">{formatCurrency(product.cost)}đ</div>
-                                                                        <div className="text-gray-500">{product.quantity} {product.unit}</div>
+                                                                        <div className="text-gray-500">{product.quantity}x{product.unit}</div>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -702,7 +821,7 @@ const CheckoutCalculation = () => {
                                                     {/* Alternatives count indicator */}
                                                     {(() => {
                                                         const totalAlternatives = Object.values(store.productsByCategory).flat()
-                                                            .reduce((total, product) => total + (product.alternatives?.length || 0), 0);
+                                                            .reduce((total, product) => total + (product.alternatives ? product.alternatives.length : 0), 0);
                                                         
                                                         return totalAlternatives > 0 && (
                                                             <div className="flex items-center mt-3 bg-orange-50 p-2 rounded-lg border border-orange-100">

@@ -4,7 +4,7 @@ import { useBasket } from '../../context/BasketContext';
 import { ingredientService } from '../../services/ingredientService';
 import { getCategoryNameVN } from '../../utils/categoryMapping';
 
-const ProductCard = ({ id, vietnamese_name, name, unit, image, category }) => {
+const ProductCard = ({ id, vietnamese_name, name, unit, image, category, net_unit_value}) => {
     const { openModal } = useModal();
     const { addIngredient } = useBasket();
     const [loading, setLoading] = useState(false);
@@ -19,6 +19,7 @@ const ProductCard = ({ id, vietnamese_name, name, unit, image, category }) => {
             name: name,
             unit: unit,
             image: image,
+            net_unit_value: net_unit_value,
             category: category || 'Khác',
             quantity: 1
         };

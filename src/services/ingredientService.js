@@ -1,5 +1,4 @@
 import axiosPublic from './axiosPublic';
-import axiosPrivate from './axiosPrivate';
 
 export const ingredientService = {
     async getIngredients(page = 0, pageSize = 30, filters = {}) {

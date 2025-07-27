@@ -12,7 +12,7 @@ export const Footer = () => {
                     <div className="md:w-2/5">
                         <h3 className="text-xl font-bold mb-4 flex items-center">
                             <img src={logoImage} alt="Markendation Logo" className="w-32 mr-2" />
-                            MARKENDATION
+                            
                         </h3>
                         <p className="text-gray-200 leading-relaxed">
                             Nền tảng thông minh giúp tìm kiếm cửa hàng dựa trên nguyên liệu bạn cần.
@@ -43,7 +43,7 @@ export const Footer = () => {
                 </div>
 
                 <div className="border-t border-green-600 mt-10 pt-3 text-center text-green-200">
-                    <p>© 2025 MARKENDATION. All rights reserved.</p>version 1.0.0
+                    <p>© 2025 MARKENDATION. All rights reserved.</p>
                 </div>
             </div>
         </footer>

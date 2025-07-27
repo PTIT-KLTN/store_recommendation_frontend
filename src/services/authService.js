@@ -29,7 +29,7 @@ export const authService = {
     register: async (userData) => {
         try {
             const registerData = {
-                fullname: userData.username,
+                fullname: userData.fullname,
                 email: userData.email,
                 password: userData.password
             };

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { userService } from '../services/userService';
+import axiosPrivate from '../services/axiosPrivate'; // Thêm import này
 
 const UserContext = createContext();
 
@@ -33,6 +34,8 @@ export const UserProvider = ({ children }) => {
             console.error('Error loading user:', error);
             // Token might be expired, clear it
             localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken'); // Thêm clear refresh token
+            userService.clearUserFromLocalStorage();
             setIsLoggedIn(false);
             setUser(null);
         } finally {
@@ -40,22 +43,55 @@ export const UserProvider = ({ children }) => {
         }
     };
 
-    const login = async (token, userData = null) => {
+    const login = async (token, refreshToken = null, userData = null) => {
         localStorage.setItem('accessToken', token);
+        if (refreshToken) {
+            localStorage.setItem('refreshToken', refreshToken);
+        }
         setIsLoggedIn(true);
         
         if (userData) {
             setUser(userData);
+            userService.saveUserToLocalStorage(userData);
         } else {
             await loadUser();
         }
     };
 
-    const logout = () => {
-        localStorage.removeItem('accessToken');
-        userService.clearUserFromLocalStorage();
-        setIsLoggedIn(false);
-        setUser(null);
+    // Cập nhật hàm logout để gọi API
+    const logout = async () => {
+        try {
+            // Kiểm tra có access token không
+            const accessToken = localStorage.getItem('accessToken');
+            
+            if (accessToken) {
+                try {
+                    // Gọi API logout để xóa refresh token khỏi database
+                    await axiosPrivate.post('/auth/logout');
+                } catch (error) {
+                    // Nếu API call fail (token expired, network error, etc.)
+                    // vẫn tiếp tục clear localStorage
+                    console.warn('Logout API call failed:', error.message);
+                }
+            }
+            
+            // Clear tất cả auth data
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            userService.clearUserFromLocalStorage();
+            setIsLoggedIn(false);
+            setUser(null);
+            
+        } catch (error) {
+            console.error('Logout error:', error);
+            
+            // Dù có lỗi vẫn force clear auth data
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            userService.clearUserFromLocalStorage();
+            setIsLoggedIn(false);
+            setUser(null);
+        }
     };
 
     useEffect(() => {
@@ -67,7 +103,7 @@ export const UserProvider = ({ children }) => {
         loading,
         isLoggedIn,
         login,
-        logout,
+        logout, // Bây giờ đã là async function
         refreshUser: loadUser
     };
 

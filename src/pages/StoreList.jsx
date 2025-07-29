@@ -143,7 +143,7 @@ const StoreList = () => {
             return;
         }
 
-        const storeId = store.store_id || store._id;
+        const storeId = store.store_id;
         const isFavourite = favouriteStores.has(storeId);
         
         // Set loading state for this specific store

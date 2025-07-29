@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { FcGoogle } from "react-icons/fc";
 import { HiArrowNarrowRight } from "react-icons/hi";
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useUser } from '../../context/UserContext';
-import StatisticsSidebar from '../StatisticsSidebar';
+import StatisticsSidebar from './StatisticsSidebar';
 import { images } from '../../assets/assets';
 import { authService } from '../../services/authService';
 
@@ -41,11 +40,6 @@ const RegisterForm = () => {
 
         if (formData.password.length < 5) {
             setError('Mật khẩu phải có ít nhất 5 ký tự.');
-            return false;
-        }
-
-        if (!formData.agreeTerms) {
-            setError('Bạn cần đồng ý với điều khoản dịch vụ.');
             return false;
         }
 
@@ -153,7 +147,7 @@ const RegisterForm = () => {
                                 />
                             </div>
 
-                            <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="relative">
                                     <label htmlFor="password" className="block text-gray-700 text-sm font-medium mb-2">Mật khẩu</label>
                                     <div className="relative">
@@ -167,13 +161,6 @@ const RegisterForm = () => {
                                             placeholder="Tạo mật khẩu"
                                             required
                                         />
-                                        <button
-                                            type="button"
-                                            onClick={togglePasswordVisibility}
-                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 focus:outline-none"
-                                        >
-                                            {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
-                                        </button>
                                     </div>
                                 </div>
 
@@ -190,31 +177,8 @@ const RegisterForm = () => {
                                             placeholder="Nhập lại mật khẩu"
                                             required
                                         />
-                                        <button
-                                            type="button"
-                                            onClick={toggleConfirmPasswordVisibility}
-                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 focus:outline-none"
-                                        >
-                                            {showConfirmPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
-                                        </button>
                                     </div>
                                 </div>
-                            </div>
-
-                            <div className="mb-6">
-                                <label className="flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        name="agreeTerms"
-                                        checked={formData.agreeTerms}
-                                        onChange={handleChange}
-                                        className="h-5 w-5 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
-                                        required
-                                    />
-                                    <span className="ml-2 text-sm text-gray-700">
-                                        Tôi đồng ý với <a href="/terms" className="text-orange-500 hover:underline">Điều khoản dịch vụ</a> và <a href="/privacy" className="text-orange-500 hover:underline">Chính sách bảo mật</a>
-                                    </span>
-                                </label>
                             </div>
 
                             <button

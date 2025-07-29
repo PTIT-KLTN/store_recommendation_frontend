@@ -1,4 +1,3 @@
-// services/storeService.js
 import axiosPrivate from './axiosPrivate';
 
 export const storeService = {

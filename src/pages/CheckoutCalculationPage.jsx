@@ -392,11 +392,9 @@ const CheckoutCalculation = () => {
                     chain: store.chain,
                     store_location: store.address,
                     phone: store.phone,
-                    distance_km: store.distance,
                     totalScore: store.rating,
                     reviewsCount: store.reviews_count
                 };
-                console.log('Data to fav store: ',storeData)
                 const response = await userService.addFavouriteStore(storeData);
                 
                 // Handle different response formats
@@ -408,7 +406,6 @@ const CheckoutCalculation = () => {
                 toast.success("Đã thêm cửa hàng vào danh sách yêu thích");
             }
         } catch (error) {
-            console.error("Error toggling favourite store:", error);
             if (isFavourite) {
                 toast.error("Không thể xóa cửa hàng khỏi danh sách yêu thích");
             } else {
@@ -503,7 +500,6 @@ const CheckoutCalculation = () => {
                                 <span className="text-green-600 font-medium">{formatPrice(product.cost)}đ</span>
                             </div>
                             <div className="text-right text-gray-500">
-                                <div>{product.quantity} x {product.unit}</div>
                                 {product.product_net_unit_value && (
                                     <div className="text-xs">({product.product_net_unit_value}{product.unit}/sản phẩm)</div>
                                 )}
@@ -628,14 +624,6 @@ const CheckoutCalculation = () => {
                                 </h2>
                             </div>
 
-                            {/* Calculation summary */}
-                            {calculationResult && (
-                                <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                                    <div className="text-sm text-blue-700">
-                                        <strong>Tổng nguyên liệu:</strong> {calculationResult.total_ingredients}
-                                    </div>
-                                </div>
-                            )}
 
                             {suggestedStores.length > 0 ? (
                                 <div className="space-y-6">

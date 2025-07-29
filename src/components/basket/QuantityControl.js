@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { FiTrash2 } from 'react-icons/fi';
 
 const QuantityControl = ({
-    item, isDishIngredient = false, dishId = null, updateQuantity, removeItem
+    item, 
+    isDishIngredient = false, 
+    dishId = null, 
+    updateQuantity, 
+    removeItem
 }) => {
     const [inputValue, setInputValue] = useState(item.quantity);
 
@@ -15,9 +19,9 @@ const QuantityControl = ({
     };
 
     const handleBlur = () => {
-        const newQuantity = parseInt(inputValue, 10);
+        const newQuantity = parseFloat(inputValue);
 
-        if (isNaN(newQuantity) || newQuantity < 1) {
+        if (isNaN(newQuantity) || newQuantity < 0.1) {
             setInputValue(item.quantity);
         } else {
             updateQuantity(item.id, newQuantity, isDishIngredient, dishId);
@@ -30,22 +34,41 @@ const QuantityControl = ({
         }
     };
 
+    const handleDecrease = () => {
+        const currentQuantity = parseFloat(item.quantity) || 0;
+        const newQuantity = Math.max(0.1, currentQuantity - 0.1);
+        updateQuantity(item.id, parseFloat(newQuantity.toFixed(1)), isDishIngredient, dishId);
+    };
+
+    const handleIncrease = () => {
+        const currentQuantity = parseFloat(item.quantity) || 0;
+        const newQuantity = currentQuantity + 0.1;
+        updateQuantity(item.id, parseFloat(newQuantity.toFixed(1)), isDishIngredient, dishId);
+    };
+
+    const handleRemove = () => {
+        if (isDishIngredient) {
+            // For dish ingredients, pass the item identifier and dish ID
+            removeItem(item.id, true, dishId);
+        } else {
+            // For standalone ingredients, just pass the item ID
+            removeItem(item.id, false);
+        }
+    };
+
     return (
         <div className="flex items-center">
             <button
-                onClick={() => {
-                    const newQuantity = Math.max(1, parseInt(item.quantity, 10) - 1);
-                    updateQuantity(item.id, newQuantity, isDishIngredient, dishId);
-                }}
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-black text-white"
+                onClick={handleDecrease}
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-black text-white hover:bg-gray-800 transition-colors"
             >
                 <span className="text-base">−</span>
             </button>
 
             <input
                 type="number"
-                min="1"
-                step="1"
+                min="0.1"
+                step="0.1"
                 value={inputValue}
                 onChange={handleInputChange}
                 onBlur={handleBlur}
@@ -55,11 +78,8 @@ const QuantityControl = ({
             />
 
             <button
-                onClick={() => {
-                    const newQuantity = parseInt(item.quantity, 10) + 1;
-                    updateQuantity(item.id, newQuantity, isDishIngredient, dishId);
-                }}
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-black text-white"
+                onClick={handleIncrease}
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-black text-white hover:bg-gray-800 transition-colors"
             >
                 <span className="text-base">+</span>
             </button>
@@ -69,8 +89,9 @@ const QuantityControl = ({
             </span>
 
             <button
-                onClick={() => removeItem(item.id, isDishIngredient, dishId)}
-                className="ml-8 w-10 h-10 flex items-center justify-center bg-red-500 text-white rounded"
+                onClick={handleRemove}
+                className="ml-8 w-10 h-10 flex items-center justify-center bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                title={isDishIngredient ? "Xóa nguyên liệu khỏi món ăn" : "Xóa nguyên liệu"}
             >
                 <FiTrash2 size={20} />
             </button>

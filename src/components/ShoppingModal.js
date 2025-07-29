@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { FiX } from 'react-icons/fi';
 import { MdOutlineImageNotSupported } from "react-icons/md";
 import { toast } from 'react-toastify';
-import { getIngredientById, getDishWithIngredients, images } from '../assets/assets';
 import { useBasket } from '../context/BasketContext';
 
 const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
@@ -19,9 +18,6 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
             if (type === 'dish' && itemData) {
                 if (itemData.ingredients && itemData.ingredients.length > 0) {
                     setDishWithIngredients(itemData);
-                } else if (itemData.id) {
-                    const dish = getDishWithIngredients(itemData.id);
-                    setDishWithIngredients(dish);
                 } else {
                     setDishWithIngredients(itemData);
                 }

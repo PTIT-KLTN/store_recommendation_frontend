@@ -1,14 +1,13 @@
-import axios from 'axios';
+import axiosPublic from './axiosPublic';
 import { userService } from './userService';
 
-const API_URL = process.env.REACT_APP_API_URL;
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 const GOOGLE_REDIRECT_URI = process.env.REACT_APP_GOOGLE_REDIRECT_URI;
 
 export const authService = {
     login: async (credentials) => {
         try {
-            const response = await axios.post(`${API_URL}/auth/login`, credentials);
+            const response = await axiosPublic.post('/auth/login', credentials);
 
             if (response.data.access_token) {
                 localStorage.setItem('accessToken', response.data.access_token);
@@ -16,8 +15,8 @@ export const authService = {
                 if (response.data.refresh_token) {
                     localStorage.setItem('refreshToken', response.data.refresh_token);
                 }
-
             }
+            userService.getUserInfo()
 
             return response.data;
         } catch (error) {
@@ -34,7 +33,7 @@ export const authService = {
                 password: userData.password
             };
 
-            const response = await axios.post(`${API_URL}/auth/register`, registerData);
+            const response = await axiosPublic.post('/auth/register', registerData);
 
             if (response.data.access_token) {
                 localStorage.setItem('accessToken', response.data.access_token);
@@ -43,6 +42,7 @@ export const authService = {
                     localStorage.setItem('refreshToken', response.data.refresh_token);
                 }
             }
+            userService.getUserInfo()
 
             return response.data;
         } catch (error) {
@@ -55,7 +55,7 @@ export const authService = {
         try {
             const accessToken = localStorage.getItem('accessToken');
             if (accessToken) {
-                await axios.post(`${API_URL}/auth/logout`, {}, {
+                await axiosPublic.post('/auth/logout', {}, {
                     headers: {
                         'Authorization': `Bearer ${accessToken}`
                     }
@@ -73,7 +73,7 @@ export const authService = {
     refreshToken: async () => {
         try {
             const refreshToken = localStorage.getItem('refreshToken');
-            const response = await axios.post(`${API_URL}/auth/refresh`, {
+            const response = await axiosPublic.post('/auth/refresh', {
                 refresh_token: refreshToken
             });
 
@@ -115,5 +115,42 @@ export const authService = {
 
     isAuthenticated: () => {
         return !!localStorage.getItem('accessToken');
+    },
+
+    forgotPassword: async (email) => {
+        try {
+            const response = await axiosPublic.post('/auth/forgot-password', {
+                email: email
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Forgot password failed:', error);
+            throw error;
+        }
+    },
+
+    verifyResetToken: async (token) => {
+        try {
+            const response = await axiosPublic.post('/auth/verify-reset-token', {
+                token: token
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Token verification failed:', error);
+            throw error;
+        }
+    },
+
+    resetPassword: async (token, newPassword) => {
+        try {
+            const response = await axiosPublic.post('/auth/reset-password', {
+                token: token,
+                new_password: newPassword
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Password reset failed:', error);
+            throw error;
+        }
     }
 };

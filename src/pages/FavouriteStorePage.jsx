@@ -19,7 +19,6 @@ const FavouriteStores = () => {
         try {
             setLoading(true);
             
-            // Load user info and favourite stores concurrently
             const [userResponse, storesResponse] = await Promise.all([
                 userService.getUserInfo(),
                 userService.getFavouriteStores()

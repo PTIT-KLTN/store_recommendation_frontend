@@ -19,7 +19,6 @@ export const userService = {
         }
     },
 
-    // Favourite Stores APIs
     getFavouriteStores: async () => {
         try {
             const response = await axiosPrivate.get('/user/favourite-stores');

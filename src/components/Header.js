@@ -26,9 +26,9 @@ const Header = ({ basketCount }) => {
             }
 
             setUserLocation({
-                address: 'Regent Street, A4, A4201, London',
-                latitude: 51.5093,
-                longitude: -0.1367
+                address: 'P. Bình Trưng Đông, TP. Thủ Đức TP. Hồ Chí Minh Việt Nam',
+                latitude: 10.789678,
+                longitude: 106.76841
             });
         };
 

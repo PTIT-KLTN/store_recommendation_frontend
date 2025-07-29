@@ -8,7 +8,7 @@ import { FiPlusCircle } from "react-icons/fi";
 import BasketHeader from '../components/basket/BasketHeader';
 import IngredientSection from '../components/basket/IngredientSection';
 import DishSection from '../components/basket/DishSection';
-import SaveBasketDialog from '../components/basket/SaveBasketDialog'; // Import dialog
+import SaveBasketDialog from '../components/basket/SaveBasketDialog';
 import { useBasket } from '../context/BasketContext';
 import { basketService } from '../services/basketService';
 import { toast } from 'react-toastify';
@@ -33,8 +33,8 @@ const BasketPage = () => {
     });
 
     const [calculating, setCalculating] = useState(false);
-    const [showSaveDialog, setShowSaveDialog] = useState(false); // State cho dialog
-    const [savingBasket, setSavingBasket] = useState(false); // State cho loading save
+    const [showSaveDialog, setShowSaveDialog] = useState(false);
+    const [savingBasket, setSavingBasket] = useState(false);
 
     useEffect(() => {
         if (!loading && basketItems.dishes) {
@@ -60,14 +60,22 @@ const BasketPage = () => {
         }
     };
 
+    // Fixed update quantity function
     const handleUpdateQuantity = async (id, newQuantity, isDishIngredient = false, dishId = null) => {
         try {
+            if (newQuantity <= 0) {
+                // If quantity is 0 or less, remove the item
+                await handleRemoveItem(id, isDishIngredient, dishId);
+                return;
+            }
+
             let updatedBasketItems = { ...basketItems };
 
             if (isDishIngredient && dishId) {
+                // Update ingredient in specific dish
                 if (updatedBasketItems.dishes[dishId]) {
                     const updatedIngredients = updatedBasketItems.dishes[dishId].ingredients.map(item => {
-                        if (item.id === id) {
+                        if (item.name === id) { // Use 'name' as identifier for dish ingredients
                             return { ...item, quantity: newQuantity };
                         }
                         return item;
@@ -79,6 +87,7 @@ const BasketPage = () => {
                     };
                 }
             } else {
+                // Update standalone ingredient
                 updatedBasketItems.ingredients = updatedBasketItems.ingredients.map(item => {
                     if (item.id === id) {
                         return { ...item, quantity: newQuantity };
@@ -94,16 +103,19 @@ const BasketPage = () => {
         }
     };
 
+    // Fixed remove item function
     const handleRemoveItem = async (id, isDishIngredient = false, dishId = null) => {
         try {
             let updatedBasketItems = { ...basketItems };
 
             if (isDishIngredient && dishId) {
+                // Remove specific ingredient from dish
                 if (updatedBasketItems.dishes[dishId]) {
                     const updatedIngredients = updatedBasketItems.dishes[dishId].ingredients.filter(
-                        item => item.id !== id
+                        item => item.name !== id // Use 'name' as identifier for dish ingredients
                     );
 
+                    // If dish has no ingredients left, remove the entire dish
                     if (updatedIngredients.length === 0) {
                         delete updatedBasketItems.dishes[dishId];
 
@@ -116,15 +128,15 @@ const BasketPage = () => {
                             };
                         });
                     } else {
+                        // Update dish with remaining ingredients
                         updatedBasketItems.dishes[dishId] = {
                             ...updatedBasketItems.dishes[dishId],
                             ingredients: updatedIngredients
                         };
                     }
-
-                    await updateBasket(updatedBasketItems);
                 }
             } else if (dishId) {
+                // Remove entire dish
                 delete updatedBasketItems.dishes[dishId];
 
                 setExpandedSections(prev => {
@@ -135,11 +147,14 @@ const BasketPage = () => {
                         dishes: updatedExpanded
                     };
                 });
-
-                await updateBasket(updatedBasketItems);
             } else {
-                await removeIngredient(id);
+                // Remove standalone ingredient
+                updatedBasketItems.ingredients = updatedBasketItems.ingredients.filter(
+                    item => item.id !== id
+                );
             }
+
+            await updateBasket(updatedBasketItems);
         } catch (error) {
             console.error("Error removing item:", error);
             toast.error("Không thể xóa mục. Vui lòng thử lại sau.");
@@ -151,6 +166,7 @@ const BasketPage = () => {
             let updatedBasketItems = { ...basketItems };
 
             if (newServings <= 0) {
+                // Remove entire dish if servings is 0
                 delete updatedBasketItems.dishes[dishId];
 
                 setExpandedSections(prev => {
@@ -162,6 +178,7 @@ const BasketPage = () => {
                     };
                 });
             } else {
+                // Update dish servings
                 updatedBasketItems.dishes[dishId] = {
                     ...updatedBasketItems.dishes[dishId],
                     servings: newServings
@@ -175,27 +192,22 @@ const BasketPage = () => {
         }
     };
 
-    // Mở dialog lưu giỏ hàng
     const openSaveDialog = () => {
         setShowSaveDialog(true);
     };
 
-    // Đóng dialog
     const closeSaveDialog = () => {
         setShowSaveDialog(false);
     };
 
-    // Xử lý lưu giỏ hàng với tên
     const handleSaveFavoriteBasket = async (basketName) => {
         try {
             setSavingBasket(true);
 
-            // Đồng bộ basket trước khi lưu
             if (syncStatus !== 'synced') {
                 await updateBasket();
             }
 
-            // Gọi API lưu với tên basket
             const result = await basketService.saveFavoriteBasket({
                 ...basketItems,
                 basket_name: basketName
@@ -286,10 +298,8 @@ const BasketPage = () => {
             <Navbar />
 
             <div className="container mx-auto px-4 py-8">
-                {/* Truyền openSaveDialog thay vì saveFavoriteCart */}
                 <BasketHeader saveCart={openSaveDialog} />
 
-                {/* Hiển thị trạng thái đồng bộ */}
                 <div className="mb-2 flex justify-end">
                     {renderSyncStatus()}
                 </div>
@@ -363,7 +373,6 @@ const BasketPage = () => {
                 )}
             </div>
 
-            {/* Save Basket Dialog */}
             <SaveBasketDialog
                 isOpen={showSaveDialog}
                 onClose={closeSaveDialog}

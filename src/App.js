@@ -15,7 +15,9 @@ import { UserProvider } from './context/UserContext';
 import GoogleCallback from './components/auth/GoogleCallback';
 import FavouriteStores from './pages/FavouriteStorePage';
 import CheckoutCalculation from './pages/CheckoutCalculationPage';
+import ForgotPassword from './components/auth/ForgotPassword';
 import StoreList from './pages/StoreList';
+import ResetPassword from './components/auth/ResetPassword';
 
 function App() {
   return (
@@ -37,6 +39,8 @@ function App() {
                 <Route path="/favourite-stores" element={<FavouriteStores />} />
                 <Route path='/calculate' element={<CheckoutCalculation />} />
                 <Route path="/stores" element={<StoreList />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
               </Routes> 
               <ToastContainer
                 position="bottom-right" />

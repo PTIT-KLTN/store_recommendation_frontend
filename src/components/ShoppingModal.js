@@ -11,6 +11,14 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
     const [selectedIngredients, setSelectedIngredients] = useState({});
     const [selectedOptionalIngredients, setSelectedOptionalIngredients] = useState({});
 
+    // Quantity limits based on type
+    const getQuantityLimit = () => {
+        if (type === 'dish') {
+            return 10; 
+        }
+        return 5000; 
+    };
+
     useEffect(() => {
         if (isOpen) {
             setQuantity(1);
@@ -54,7 +62,31 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
 
     const handleQuantityChange = (value) => {
         const parsedValue = parseInt(value, 10);
-        setQuantity(isNaN(parsedValue) || parsedValue < 1 ? 1 : parsedValue);
+        const maxQuantity = getQuantityLimit();
+        
+        if (isNaN(parsedValue) || parsedValue < 1) {
+            setQuantity(1);
+        } else if (parsedValue > maxQuantity) {
+            setQuantity(maxQuantity);
+            toast.warning(`Số lượng tối đa là ${maxQuantity} ${getUnit()}`);
+        } else {
+            setQuantity(parsedValue);
+        }
+    };
+
+    const handleQuantityIncrease = () => {
+        const maxQuantity = getQuantityLimit();
+        if (quantity < maxQuantity) {
+            setQuantity(quantity + 1);
+        } else {
+            toast.warning(`Số lượng tối đa là ${maxQuantity} ${getUnit()}`);
+        }
+    };
+
+    const handleQuantityDecrease = () => {
+        if (quantity > 1) {
+            setQuantity(quantity - 1);
+        }
     };
 
     const toggleIngredient = (id, isOptional = false) => {
@@ -119,7 +151,7 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                 };
 
                 await addDish(dish);
-                toast.success(`Đã thêm ${dish.vietnamese_name || dish.name} vào giỏ hàng!`);
+                toast.success(`Đã thêm ${dish.vietnamese_name || dish.name} (${quantity} phần) vào giỏ hàng!`);
             } else if ((type === 'ingredients' || type === 'search') && itemData) {
                 const ingredientsArray = itemData;
                 console.log (ingredientsArray)
@@ -144,7 +176,7 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                     toast.success(
                         `Đã thêm ${ingredientsArray.length > 1
                             ? 'các nguyên liệu'
-                            : ingredientsArray[0].vietnamese_name} vào giỏ hàng!`
+                            : ingredientsArray[0].vietnamese_name} (${quantity} ${getUnit()}) vào giỏ hàng!`
                     );
                 }
             }
@@ -211,6 +243,8 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
             ? (itemData[0].imageUrl || itemData[0].image)
             : '';
     }
+
+    const maxQuantity = getQuantityLimit();
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -332,23 +366,57 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                             </div>
                         )}
 
-                        {/* Quantity input */}
+                        {/* Quantity input with controls */}
                         <div className="mb-6">
                             <div className="flex items-center justify-between mb-4">
                                 <label className="text-xl font-bold">
                                     Nhập số lượng mong muốn:
                                 </label>
                             </div>
-                            <div className="flex items-center">
+                            <div className="flex items-center space-x-3">
+                                {/* Decrease button */}
+                                <button
+                                    type="button"
+                                    onClick={handleQuantityDecrease}
+                                    disabled={quantity <= 1}
+                                    className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:border-green-500 hover:text-green-600 transition-colors"
+                                >
+                                    <span className="text-xl font-bold">−</span>
+                                </button>
+                                
+                                {/* Quantity input */}
                                 <input
-                                    type="number" min="1" step="1" value={quantity}
+                                    type="number" 
+                                    min="1" 
+                                    max={maxQuantity}
+                                    step="1" 
+                                    value={quantity}
                                     onChange={(e) => handleQuantityChange(e.target.value)}
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-full text-center"
+                                    className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-full text-center text-xl font-bold focus:border-green-500 focus:outline-none"
                                 />
-                                <span className="ml-2 text-gray-500">
+                                
+                                {/* Increase button */}
+                                <button
+                                    type="button"
+                                    onClick={handleQuantityIncrease}
+                                    disabled={quantity >= maxQuantity}
+                                    className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:border-green-500 hover:text-green-600 transition-colors"
+                                >
+                                    <span className="text-xl font-bold">+</span>
+                                </button>
+                                
+                                {/* Unit display */}
+                                <div className="ml-2 text-gray-500 font-medium min-w-[60px]">
                                     {getUnit()}
-                                </span>
+                                </div>
                             </div>
+                            
+                            {/* Quantity warning */}
+                            {quantity >= maxQuantity && (
+                                <div className="mt-2 text-center text-sm text-orange-600">
+                                    Đã đạt số lượng tối đa
+                                </div>
+                            )}
                         </div>
 
                         {/* Add to cart button */}

@@ -2,6 +2,9 @@ import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
+// Track ongoing refresh request to prevent race conditions
+let refreshPromise = null;
+
 const axiosPrivate = axios.create({
     baseURL: API_URL,
     headers: {
@@ -10,32 +13,26 @@ const axiosPrivate = axios.create({
     }
 });
 
-// Hàm helper để clear auth data và redirect
-const clearAuthAndRedirect = () => {
+// Helper function to dispatch auth events
+const dispatchAuthEvent = (type, data = null) => {
+    window.dispatchEvent(new CustomEvent('authEvent', {
+        detail: { type, data }
+    }));
+};
+
+// Helper function to clear auth data
+const clearAuthData = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
-    
-    // Kiểm tra nếu không phải đang ở trang login
-    if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
-    }
 };
 
-// Thêm interceptor cho request - thêm token vào header khi gửi request
+// Request interceptor
 axiosPrivate.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('accessToken');
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
-        } else {
-            // Nếu không có access token, kiểm tra có refresh token không
-            const refreshToken = localStorage.getItem('refreshToken');
-            if (!refreshToken) {
-                // Không có cả access token và refresh token -> redirect ngay
-                clearAuthAndRedirect();
-                return Promise.reject(new Error('No authentication tokens found'));
-            }
         }
         config.headers['ngrok-skip-browser-warning'] = 'true';
         return config;
@@ -45,7 +42,7 @@ axiosPrivate.interceptors.request.use(
     }
 );
 
-// Thêm interceptor cho response - xử lý lỗi 401 (Unauthorized)
+// Response interceptor
 axiosPrivate.interceptors.response.use(
     (response) => {
         return response;
@@ -53,49 +50,64 @@ axiosPrivate.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
+        // Handle 401 Unauthorized
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
 
             const refreshToken = localStorage.getItem('refreshToken');
             
-            // Nếu không có refresh token -> redirect ngay
+            // No refresh token - trigger logout
             if (!refreshToken) {
-                clearAuthAndRedirect();
+                clearAuthData();
+                dispatchAuthEvent('LOGOUT', { reason: 'unauthorized' });
                 return Promise.reject(error);
             }
 
             try {
-                const response = await axios.post(`${API_URL}/auth/refresh`, {
-                    refresh_token: refreshToken // Sửa key cho đúng với backend
-                }, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': 'true'
-                    }
-                });
+                // Prevent multiple refresh requests
+                if (!refreshPromise) {
+                    refreshPromise = axios.post(`${API_URL}/auth/refresh`, {
+                        refresh_token: refreshToken
+                    }, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'ngrok-skip-browser-warning': 'true'
+                        }
+                    });
+                }
+
+                const response = await refreshPromise;
+                refreshPromise = null; // Reset after successful refresh
 
                 if (response.data.access_token) {
-                    // Lưu token mới
+                    // Update tokens
                     localStorage.setItem('accessToken', response.data.access_token);
+                    if (response.data.refresh_token) {
+                        localStorage.setItem('refreshToken', response.data.refresh_token);
+                    }
                     
-                    // Cập nhật header cho request gốc
+                    // Update original request with new token
                     originalRequest.headers['Authorization'] = `Bearer ${response.data.access_token}`;
-                    originalRequest.headers['ngrok-skip-browser-warning'] = 'true';
                     
-                    // Retry request gốc
+                    // Retry original request
                     return axiosPrivate(originalRequest);
                 } else {
                     throw new Error('No access token in refresh response');
                 }
             } catch (refreshError) {
-                clearAuthAndRedirect();
+                refreshPromise = null; // Reset on error
+                console.error('Token refresh failed:', refreshError);
+                
+                clearAuthData();
+                dispatchAuthEvent('LOGOUT', { reason: 'token_expired' });
                 return Promise.reject(refreshError);
             }
         }
 
-        // Nếu là lỗi 401 nhưng đã retry rồi, hoặc lỗi khác
+        // Handle other 401 errors or if retry failed
         if (error.response?.status === 401) {
-            clearAuthAndRedirect();
+            clearAuthData();
+            dispatchAuthEvent('LOGOUT', { reason: 'unauthorized' });
         }
 
         return Promise.reject(error);

@@ -10,7 +10,6 @@ const axiosPublic = axios.create({
     },
 });
 
-// Thêm interceptor để đảm bảo header ngrok luôn có
 axiosPublic.interceptors.request.use(
     (config) => {
         config.headers['ngrok-skip-browser-warning'] = 'true';

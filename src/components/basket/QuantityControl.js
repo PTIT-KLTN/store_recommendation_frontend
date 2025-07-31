@@ -21,7 +21,7 @@ const QuantityControl = ({
     const handleBlur = () => {
         const newQuantity = parseFloat(inputValue);
 
-        if (isNaN(newQuantity) || newQuantity < 0.1) {
+        if (isNaN(newQuantity) || newQuantity < 1) {
             setInputValue(item.quantity);
         } else {
             updateQuantity(item.id, newQuantity, isDishIngredient, dishId);
@@ -36,13 +36,13 @@ const QuantityControl = ({
 
     const handleDecrease = () => {
         const currentQuantity = parseFloat(item.quantity) || 0;
-        const newQuantity = Math.max(0.1, currentQuantity - 0.1);
+        const newQuantity = Math.max(1, currentQuantity - 1);
         updateQuantity(item.id, parseFloat(newQuantity.toFixed(1)), isDishIngredient, dishId);
     };
 
     const handleIncrease = () => {
         const currentQuantity = parseFloat(item.quantity) || 0;
-        const newQuantity = currentQuantity + 0.1;
+        const newQuantity = currentQuantity + 1;
         updateQuantity(item.id, parseFloat(newQuantity.toFixed(1)), isDishIngredient, dishId);
     };
 
@@ -67,8 +67,8 @@ const QuantityControl = ({
 
             <input
                 type="number"
-                min="0.1"
-                step="0.1"
+                min="1"
+                step="1"
                 value={inputValue}
                 onChange={handleInputChange}
                 onBlur={handleBlur}

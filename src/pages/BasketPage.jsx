@@ -3,8 +3,6 @@ import Header from '../components/Header';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { Link, useNavigate } from 'react-router-dom';
-import { HiOutlineCalculator } from "react-icons/hi";
-import { FiPlusCircle } from "react-icons/fi";
 import BasketHeader from '../components/basket/BasketHeader';
 import IngredientSection from '../components/basket/IngredientSection';
 import DishSection from '../components/basket/DishSection';
@@ -12,6 +10,9 @@ import SaveBasketDialog from '../components/basket/SaveBasketDialog';
 import { useBasket } from '../context/BasketContext';
 import { basketService } from '../services/basketService';
 import { toast } from 'react-toastify';
+import { FiPlusCircle } from "react-icons/fi";
+import { HiOutlineCalculator } from "react-icons/hi";
+import { IoFastFoodOutline } from "react-icons/io5";
 
 const BasketPage = () => {
     const navigate = useNavigate();
@@ -243,7 +244,7 @@ const BasketPage = () => {
             setCalculating(false);
         } catch (error) {
             console.error("Error calculating basket:", error);
-            toast.error("Không thể tính toán giỏ hàng. Vui lòng thử lại sau.");
+            toast.error(error.data.message);
             setCalculating(false);
         }
     };
@@ -263,34 +264,34 @@ const BasketPage = () => {
         return ingredientCount + dishIngredientsCount;
     };
 
-    const renderSyncStatus = () => {
-        if (syncStatus === 'pending') {
-            return (
-                <div className="text-yellow-600 text-xs flex items-center">
-                    <div className="animate-spin h-3 w-3 border-t-2 border-b-2 border-yellow-600 rounded-full mr-1"></div>
-                    Đang đồng bộ...
-                </div>
-            );
-        } else if (syncStatus === 'error') {
-            return (
-                <div className="text-red-600 text-xs flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Đồng bộ thất bại
-                </div>
-            );
-        } else {
-            return (
-                <div className="text-green-600 text-xs flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Đã đồng bộ
-                </div>
-            );
-        }
-    };
+    // const renderSyncStatus = () => {
+    //     if (syncStatus === 'pending') {
+    //         return (
+    //             <div className="text-yellow-600 text-xs flex items-center">
+    //                 <div className="animate-spin h-3 w-3 border-t-2 border-b-2 border-yellow-600 rounded-full mr-1"></div>
+    //                 Đang đồng bộ...
+    //             </div>
+    //         );
+    //     } else if (syncStatus === 'error') {
+    //         return (
+    //             <div className="text-red-600 text-xs flex items-center">
+    //                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    //                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    //                 </svg>
+    //                 Đồng bộ thất bại
+    //             </div>
+    //         );
+    //     } else {
+    //         return (
+    //             <div className="text-green-600 text-xs flex items-center">
+    //                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    //                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+    //                 </svg>
+    //                 Đã đồng bộ
+    //             </div>
+    //         );
+    //     }
+    // };
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -299,21 +300,32 @@ const BasketPage = () => {
 
             <div className="container mx-auto px-4 py-8">
                 <BasketHeader saveCart={openSaveDialog} />
-
-                <div className="mb-2 flex justify-end">
+                {/* <div className="mb-2 flex justify-end">
                     {renderSyncStatus()}
-                </div>
+                </div> */}
 
                 {loading || calculating ? (
                     <div className="bg-white p-8 flex justify-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-600"></div>
                     </div>
                 ) : totalItemCount() === 0 ? (
-                    <div className="bg-white p-8 text-center">
-                        <h2 className="text-xl font-medium mb-4">Giỏ hàng trống</h2>
-                        <Link to="/ingredients-bank" className="bg-green-600 text-white px-4 py-2 rounded">
-                            Thêm nguyên liệu
-                        </Link>
+                    // Empty State
+                    <div className="bg-white shadow-sm border border-gray-200 p-12">
+                        <div className="text-center">
+                            <div className="w-20 h-20 flex items-center justify-center mx-auto mb-3">
+                                <IoFastFoodOutline className="w-12 h-12 text-orange-500" />
+                            </div>
+                            <h3 className="text-xl font-semibold text-gray-900 mb-3">Giỏ hàng của bạn đang trống</h3>
+                            <p className="text-gray-600 mb-6">
+                                Khám phá và thêm những nguyên liệu mới từ trang web của chúng tôi
+                            </p>
+                            <button
+                                onClick={() => window.location.href = '/ingredients-bank'}
+                                className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                            >
+                                Khám phá các nguyên liệu hiện có
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     <div className="bg-white border border-gray-200 border-t-0">

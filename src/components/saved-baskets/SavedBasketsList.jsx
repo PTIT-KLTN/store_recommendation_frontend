@@ -200,14 +200,6 @@ const SavedBasketsList = ({ baskets, onRefresh, onAddToCart }) => {
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
                         Chưa có giỏ hàng nào được lưu
                     </h3>
-                    <p className="text-gray-500 mb-4 max-w-md mx-auto">
-                        Bạn chưa có giỏ hàng đã lưu nào. Hãy tạo giỏ hàng và lưu để sử dụng sau.
-                    </p>
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 max-w-md mx-auto">
-                        <p className="text-green-700 text-sm">
-                            💡 <strong>Mẹo:</strong> Bấm "Lưu giỏ hàng yêu thích" ở trang giỏ hàng để lưu giỏ hàng hiện tại
-                        </p>
-                    </div>
                 </div>
             )}
 

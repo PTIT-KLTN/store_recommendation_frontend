@@ -7,30 +7,11 @@ const Navbar = () => {
     const { user, isLoggedIn, logout, loading } = useUser();
     const navigate = useNavigate();
     const [showUserDropdown, setShowUserDropdown] = useState(false);
-    const [isLoggingOut, setIsLoggingOut] = useState(false);
     const dropdownRef = useRef(null);
 
     const handleLogout = () => {
-        try {
-            setIsLoggingOut(true);
-            setShowUserDropdown(false);
-            
-            // Gọi logout từ UserContext (sync function)
-            logout();
-            
-            // Redirect về homepage
-            navigate('/homepage');
-            
-        } catch (error) {
-            console.error('Logout error:', error);
-            
-            // Dù có lỗi vẫn force logout
-            logout();
-            navigate('/homepage');
-            
-        } finally {
-            setIsLoggingOut(false);
-        }
+        setShowUserDropdown(false);
+        logout(); // Now just calls the simple logout function
     };
 
     const handleNavigateToStores = () => {
@@ -63,12 +44,14 @@ const Navbar = () => {
 
     return (
         <nav className="flex justify-between items-center px-8 py-3 bg-white shadow-sm">
-            {/* Logo - smaller */}
+            {/* Logo */}
             <div className="flex items-center">
-                <img src={logoImage} alt="Markendation Logo" className="w-24 mr-2" />
+                <NavLink to='/'>
+                    <img src={logoImage} alt="Markendation Logo" className="w-24 mr-2" />
+                </NavLink>
             </div>
 
-            {/* Navigation Links - smaller text and padding */}
+            {/* Navigation Links */}
             <div className="flex space-x-2">
                 <NavLink
                     to="/homepage"
@@ -122,26 +105,23 @@ const Navbar = () => {
                 </NavLink>
             </div>
 
-            {/* Auth Section - smaller */}
+            {/* Auth Section */}
             <div className="relative">
                 {loading ? (    
                     <div className="w-8 h-8 bg-gray-200 animate-pulse rounded-full"></div>
                 ) : isLoggedIn && user ? (
                     <div className="relative" ref={dropdownRef}>
-                        {/* User Avatar Icon - smaller */}
                         <button
                             onClick={() => setShowUserDropdown(!showUserDropdown)}
                             className="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center font-medium text-sm hover:bg-orange-600 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500"
                             title={user.fullname || 'Người dùng'}
-                            disabled={isLoggingOut}
                         >
                             {user.fullname ? user.fullname.charAt(0).toUpperCase() : 'U'}
                         </button>
 
-                        {/* Dropdown Menu - smaller */}
-                        {showUserDropdown && !isLoggingOut && (
+                        {showUserDropdown && (
                             <div className="absolute right-0 mt-2 w-128 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                                {/* User Info - compact */}
+                                {/* User Info */}
                                 <div className="px-3 py-3">
                                     <div className="flex items-center space-x-2">
                                         <div className="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center font-semibold text-sm">
@@ -165,7 +145,6 @@ const Navbar = () => {
 
                                 {/* Menu Items */}
                                 <div className="border-t border-gray-200">
-                                    {/* Store List Link */}
                                     <button
                                         onClick={handleNavigateToStores}
                                         className="flex items-center w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
@@ -177,30 +156,16 @@ const Navbar = () => {
                                     </button>
                                 </div>
 
-                                {/* Logout - compact with loading state */}
+                                {/* Logout */}
                                 <div className="border-t border-gray-200 py-1">
                                     <button
                                         onClick={handleLogout}
-                                        disabled={isLoggingOut}
-                                        className={`flex items-center w-full px-3 py-2 text-xs ${
-                                            isLoggingOut 
-                                                ? 'text-gray-400 cursor-not-allowed' 
-                                                : 'text-red-600 hover:bg-red-50'
-                                        }`}
+                                        className="flex items-center w-full px-3 py-2 text-xs text-red-600 hover:bg-red-50"
                                     >
-                                        {isLoggingOut ? (
-                                            <>
-                                                <div className="w-3 h-3 mr-2 border border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
-                                                Đang đăng xuất...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <svg className="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                                                </svg>
-                                                Đăng xuất
-                                            </>
-                                        )}
+                                        <svg className="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                        </svg>
+                                        Đăng xuất
                                     </button>
                                 </div>
                             </div>

@@ -15,8 +15,12 @@ export const authService = {
                 if (response.data.refresh_token) {
                     localStorage.setItem('refreshToken', response.data.refresh_token);
                 }
+
+                // Save user data if available
+                if (response.data.user) {
+                    userService.saveUserToLocalStorage(response.data.user);
+                }
             }
-            userService.getUserInfo()
 
             return response.data;
         } catch (error) {
@@ -41,8 +45,12 @@ export const authService = {
                 if (response.data.refresh_token) {
                     localStorage.setItem('refreshToken', response.data.refresh_token);
                 }
+
+                // Save user data if available
+                if (response.data.user) {
+                    userService.saveUserToLocalStorage(response.data.user);
+                }
             }
-            userService.getUserInfo()
 
             return response.data;
         } catch (error) {
@@ -55,49 +63,29 @@ export const authService = {
         try {
             const accessToken = localStorage.getItem('accessToken');
             if (accessToken) {
-                await axiosPublic.post('/auth/logout', {}, {
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`
-                    }
-                });
+                try {
+                    await axiosPublic.post('/auth/logout', {}, {
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`
+                        }
+                    });
+                } catch (error) {
+                    console.warn('Logout API call failed:', error.message);
+                }
             }
         } catch (error) {
-            console.error('Logout API call failed:', error);
+            console.error('Logout error:', error);
         } finally {
+            // Always clear local data
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
             localStorage.removeItem('user');
         }
     },
 
-    refreshToken: async () => {
-        try {
-            const refreshToken = localStorage.getItem('refreshToken');
-            const response = await axiosPublic.post('/auth/refresh', {
-                refresh_token: refreshToken
-            });
-
-            if (response.data.access_token) {
-                localStorage.setItem('accessToken', response.data.access_token);
-
-                if (response.data.refresh_token) {
-                    localStorage.setItem('refreshToken', response.data.refresh_token);
-                }
-            }
-
-            return response.data;
-        } catch (error) {
-            console.error('Token refresh failed:', error);
-            authService.logout();
-            throw error;
-        }
-    },
-
     googleLogin: async () => {
         try {
-            // Tạo Google auth URL trực tiếp từ frontend
             const scope = 'openid email profile';
-
             const authUrl = `https://accounts.google.com/o/oauth2/auth?` +
                 `client_id=${encodeURIComponent(GOOGLE_CLIENT_ID)}&` +
                 `redirect_uri=${encodeURIComponent(GOOGLE_REDIRECT_URI)}&` +

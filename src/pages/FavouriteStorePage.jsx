@@ -4,6 +4,8 @@ import { toast } from 'react-toastify';
 import Header from '../components/Header';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import { LuHeart, LuMapPin, LuPhone } from "react-icons/lu";
+import { GoStarFill } from "react-icons/go";
 
 const FavouriteStores = () => {
     const [favouriteStores, setFavouriteStores] = useState([]);
@@ -18,7 +20,7 @@ const FavouriteStores = () => {
     const loadData = async () => {
         try {
             setLoading(true);
-            
+
             const [userResponse, storesResponse] = await Promise.all([
                 userService.getUserInfo(),
                 userService.getFavouriteStores()
@@ -42,7 +44,7 @@ const FavouriteStores = () => {
         try {
             setRemovingStore(storeId);
             await userService.removeFavouriteStore(storeId);
-            
+
             setFavouriteStores(prev => prev.filter(store => store.store_id !== storeId));
             toast.success('Đã xóa cửa hàng khỏi danh sách yêu thích');
         } catch (error) {
@@ -93,8 +95,8 @@ const FavouriteStores = () => {
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">Cửa hàng yêu thích</h1>
                     <p className="text-gray-600">
-                        {favouriteStores.length > 0 
-                            ? `Bạn có ${favouriteStores.length} cửa hàng yêu thích` 
+                        {favouriteStores.length > 0
+                            ? `Bạn có ${favouriteStores.length} cửa hàng yêu thích`
                             : 'Bạn chưa có cửa hàng yêu thích nào'
                         }
                     </p>
@@ -102,18 +104,16 @@ const FavouriteStores = () => {
 
                 {favouriteStores.length === 0 ? (
                     // Empty State
-                    <div className="text-center py-16">
-                        <div className="bg-white rounded-lg p-12 max-w-md mx-auto">
-                            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <svg className="w-10 h-10 text-red-500" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                                </svg>
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12">
+                        <div className="text-center">
+                            <div className="w-20 h-20 flex items-center justify-center mx-auto mb-3">
+                                <LuHeart className="w-10 h-10 text-red-500" />
                             </div>
                             <h3 className="text-xl font-semibold text-gray-900 mb-3">Chưa có cửa hàng yêu thích</h3>
                             <p className="text-gray-600 mb-6">
                                 Khám phá và thêm những cửa hàng ưa thích của bạn để dễ dàng truy cập sau này.
                             </p>
-                            <button 
+                            <button
                                 onClick={() => window.location.href = '/stores'}
                                 className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors"
                             >
@@ -125,28 +125,29 @@ const FavouriteStores = () => {
                     // Stores Grid
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {favouriteStores.map((store) => (
-                            <div key={store.store_id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
+                            <div key={store.store_id} className="border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-lg transition-all duration-300 group">
                                 <div className="p-6">
                                     {/* Store Header */}
-                                    <div className="flex items-start justify-between mb-4">
+                                    <div className="flex items-start justify-between mb-6">
                                         <div className="flex-1 min-w-0">
-                                            <h3 className="font-semibold text-lg text-gray-900 mb-2 truncate">
+                                            <h3 className="font-semibold text-lg text-gray-900 mb-2 truncate group-hover:text-green-700 transition-colors">
                                                 {store.store_name}
                                             </h3>
                                             {store.chain && (
-                                                <span className="inline-block bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full font-medium">
-                                                    {store.chain}
-                                                </span>
+                                                <div className="inline-flex items-center">
+                                                    <span className="text-sm font-medium text-blue-600 border border-blue-200 px-3 py-1 rounded-full">
+                                                        {store.chain}
+                                                    </span>
+                                                </div>
                                             )}
                                         </div>
                                         <button
                                             onClick={() => handleRemoveFavourite(store.store_id, store.store_name)}
                                             disabled={removingStore === store.store_id}
-                                            className={`ml-3 p-2 rounded-full transition-colors ${
-                                                removingStore === store.store_id
-                                                    ? 'text-gray-400 cursor-not-allowed'
-                                                    : 'text-red-500 hover:bg-red-50 hover:text-red-600'
-                                            }`}
+                                            className={`ml-3 p-2 rounded-full border border-transparent transition-all duration-200 ${removingStore === store.store_id
+                                                ? 'text-gray-400 cursor-not-allowed'
+                                                : 'text-red-500 hover:border-red-200 hover:text-red-600 hover:scale-110'
+                                                }`}
                                             title="Xóa khỏi yêu thích"
                                         >
                                             {removingStore === store.store_id ? (
@@ -160,56 +161,48 @@ const FavouriteStores = () => {
                                     </div>
 
                                     {/* Store Details */}
-                                    <div className="space-y-3">
+                                    <div className="space-y-4">
                                         {store.store_location && (
-                                            <div className="flex items-start text-sm text-gray-600">
-                                                <svg className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                </svg>
-                                                <span className="line-clamp-2">{store.store_location}</span>
+                                            <div className="flex items-start">
+                                                <div className="w-5 h-5 mt-0.5 mr-3 flex-shrink-0">
+                                                    <LuMapPin className="w-full h-full text-gray-400"/>
+                                                </div>
+                                                <span className="text-sm text-gray-600 leading-relaxed line-clamp-3">{store.store_location}</span>
                                             </div>
                                         )}
 
                                         {store.phone && (
-                                            <div className="flex items-center text-sm text-gray-600">
-                                                <svg className="h-4 w-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                                </svg>
-                                                <span>{store.phone}</span>
+                                            <div className="flex items-center">
+                                                <div className="w-5 h-5 mr-3 flex-shrink-0">
+                                                    <LuPhone className="w-full h-full text-gray-400"/>
+                                                </div>
+                                                <span className="text-gray-600 font-medium">{store.phone}</span>
                                             </div>
                                         )}
 
                                         {/* Stats */}
-                                        <div className="flex items-center justify-between pt-2">
-                                            {store.distance_km > 0 && (
-                                                <div className="flex items-center text-gray-500">
-                                                    <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                                                    </svg>
-                                                    <span className="text-sm font-medium">{formatDistance(store.distance_km)}</span>
-                                                </div>
-                                            )}
+                                        {store.totalScore > 0 && (
+                                            <div className="flex items-center">
+                                                <GoStarFill className="h-4 w-4 text-yellow-500 mr-1" />
+                                                <span className="text-gray-900 font-bold text-sm">{store.totalScore.toFixed(1)}</span>
+                                                {store.reviewsCount > 0 && (
+                                                    <span className="text-gray-500 ml-1 text-xs">({store.reviewsCount})</span>
+                                                )}
+                                            </div>
+                                        )}
 
-                                            {store.totalScore > 0 && (
-                                                <div className="flex items-center">
-                                                    <svg className="h-4 w-4 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                                                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                                                    </svg>
-                                                    <span className="text-gray-700 font-medium text-sm">{store.totalScore.toFixed(1)}</span>
-                                                    {store.reviewsCount > 0 && (
-                                                        <span className="text-gray-400 ml-1 text-sm">({store.reviewsCount})</span>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
                                     </div>
 
                                     {/* Added Date */}
-                                    <div className="mt-4 pt-4 border-t border-gray-100">
-                                        <p className="text-xs text-gray-500">
-                                            Đã thêm vào {formatDate(store.added_at)}
-                                        </p>
+                                    <div className="mt-6 pt-4 border-t border-gray-100">
+                                        <div className="flex items-center">
+                                            <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <p className="text-xs text-gray-500">
+                                                Đã thêm vào {formatDate(store.added_at)}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -217,7 +210,7 @@ const FavouriteStores = () => {
                     </div>
                 )}
             </div>
-            
+
             <Footer />
         </div>
     );

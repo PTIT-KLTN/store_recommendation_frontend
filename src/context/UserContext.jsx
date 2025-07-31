@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { userService } from '../services/userService';
-import axiosPrivate from '../services/axiosPrivate'; // Thêm import này
+import { toast } from 'react-toastify';
 
 const UserContext = createContext();
 
@@ -16,6 +17,31 @@ export const UserProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const navigate = useNavigate();
+
+    // Centralized auth event handler
+    useEffect(() => {
+        const handleAuthEvent = (event) => {
+            const { type, data } = event.detail;
+            
+            switch (type) {
+                case 'LOGOUT':
+                    handleLogout(data?.reason);
+                    break;
+                case 'TOKEN_EXPIRED':
+                    handleTokenExpired();
+                    break;
+                case 'LOGIN_SUCCESS':
+                    handleLoginSuccess(data);
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        window.addEventListener('authEvent', handleAuthEvent);
+        return () => window.removeEventListener('authEvent', handleAuthEvent);
+    }, []);
 
     const loadUser = async () => {
         try {
@@ -32,10 +58,7 @@ export const UserProvider = ({ children }) => {
             setIsLoggedIn(true);
         } catch (error) {
             console.error('Error loading user:', error);
-            // Token might be expired, clear it
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken'); // Thêm clear refresh token
-            userService.clearUserFromLocalStorage();
+            // Don't clear tokens here - let axiosPrivate handle it
             setIsLoggedIn(false);
             setUser(null);
         } finally {
@@ -44,54 +67,74 @@ export const UserProvider = ({ children }) => {
     };
 
     const login = async (token, refreshToken = null, userData = null) => {
-        localStorage.setItem('accessToken', token);
-        if (refreshToken) {
-            localStorage.setItem('refreshToken', refreshToken);
-        }
-        setIsLoggedIn(true);
-        
-        if (userData) {
-            setUser(userData);
-            userService.saveUserToLocalStorage(userData);
-        } else {
-            await loadUser();
+        try {
+            localStorage.setItem('accessToken', token);
+            if (refreshToken) {
+                localStorage.setItem('refreshToken', refreshToken);
+            }
+            
+            setIsLoggedIn(true);
+            
+            if (userData) {
+                setUser(userData);
+                userService.saveUserToLocalStorage(userData);
+            } else {
+                await loadUser();
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            throw error;
         }
     };
 
-    // Cập nhật hàm logout để gọi API
-    const logout = async () => {
+    const handleLogout = async (reason = 'user_action') => {
         try {
-            // Kiểm tra có access token không
-            const accessToken = localStorage.getItem('accessToken');
-            
-            if (accessToken) {
-                try {
-                    // Gọi API logout để xóa refresh token khỏi database
-                    await axiosPrivate.post('/auth/logout');
-                } catch (error) {
-                    // Nếu API call fail (token expired, network error, etc.)
-                    // vẫn tiếp tục clear localStorage
-                    console.warn('Logout API call failed:', error.message);
-                }
-            }
-            
-            // Clear tất cả auth data
+            // Clear all auth data immediately
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
             userService.clearUserFromLocalStorage();
+            
             setIsLoggedIn(false);
             setUser(null);
+
+            // Show appropriate message
+            if (reason === 'token_expired') {
+                toast.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+            } else if (reason === 'unauthorized') {
+                toast.error('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.');
+            }
+
+            // Navigate to login page
+            navigate('/login', { replace: true });
             
         } catch (error) {
             console.error('Logout error:', error);
-            
-            // Dù có lỗi vẫn force clear auth data
+            // Force logout even if error occurs
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
             userService.clearUserFromLocalStorage();
             setIsLoggedIn(false);
             setUser(null);
+            navigate('/login', { replace: true });
         }
+    };
+
+    const handleTokenExpired = () => {
+        handleLogout('token_expired');
+    };
+
+    const handleLoginSuccess = (data) => {
+        if (data?.user) {
+            setUser(data.user);
+            setIsLoggedIn(true);
+        }
+    };
+
+    const logout = () => {
+        // Trigger centralized logout
+        window.dispatchEvent(new CustomEvent('authEvent', {
+            detail: { type: 'LOGOUT', data: { reason: 'user_action' } }
+        }));
     };
 
     useEffect(() => {
@@ -103,7 +146,7 @@ export const UserProvider = ({ children }) => {
         loading,
         isLoggedIn,
         login,
-        logout, // Bây giờ đã là async function
+        logout,
         refreshUser: loadUser
     };
 

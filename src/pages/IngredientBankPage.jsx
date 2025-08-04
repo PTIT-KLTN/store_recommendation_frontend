@@ -1,4 +1,3 @@
-// pages/IngredientBankPage.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import Header from '../components/Header';
 import Navbar from '../components/Navbar';
@@ -7,6 +6,7 @@ import ProductCard from '../components/ingredients/ProductCard';
 import Footer from '../components/Footer';
 import IngredientCategories from '../components/ingredients/IngredientCategories';
 import { ingredientService } from '../services/ingredientService';
+import { useDebounce } from '../hooks/useDebounce';
 
 const IngredientBankPage = () => {
     const [ingredients, setIngredients] = useState([]);
@@ -21,10 +21,15 @@ const IngredientBankPage = () => {
         hasPrevious: false
     });
     const [searchPattern, setSearchPattern] = useState('');
+    const [searchInput, setSearchInput] = useState(''); // New state for input
     const [featuredIngredients, setFeaturedIngredients] = useState([]);
     const [suggestions, setSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
     const pageSize = 32;
+
+    // Debounce search input for suggestions 
+    const debouncedSearchInput = useDebounce(searchInput, 500);
 
     // Fetch ingredients with current filters
     const fetchIngredients = useCallback(async (page, filters = {}) => {
@@ -85,13 +90,16 @@ const IngredientBankPage = () => {
         return filters;
     }, [searchPattern, activeCategory]);
 
-    // Fetch suggestions for search autocomplete
-    const fetchSuggestions = async (query) => {
+    // Fetch suggestions for search autocomplete with debounced input
+    const fetchSuggestions = useCallback(async (query) => {
         if (!query || query.length < 2) {
             setSuggestions([]);
             setShowSuggestions(false);
+            setIsLoadingSuggestions(false);
             return;
         }
+
+        setIsLoadingSuggestions(true);
 
         try {
             const response = await ingredientService.getSuggestions(query, 10);
@@ -103,8 +111,10 @@ const IngredientBankPage = () => {
             console.error("Error fetching suggestions:", error);
             setSuggestions([]);
             setShowSuggestions(false);
+        } finally {
+            setIsLoadingSuggestions(false);
         }
-    };
+    }, []);
 
     // Fetch ingredients when page or filters change
     useEffect(() => {
@@ -117,7 +127,12 @@ const IngredientBankPage = () => {
         fetchFeaturedIngredients();
     }, [fetchFeaturedIngredients]);
 
-    // Handle search
+    // Fetch suggestions when debounced search input changes
+    useEffect(() => {
+        fetchSuggestions(debouncedSearchInput);
+    }, [debouncedSearchInput, fetchSuggestions]);
+
+    // Handle search form submission
     const handleSearch = (searchTerm) => {
         if (searchTerm !== searchPattern) {
             setCurrentPage(0);
@@ -130,15 +145,17 @@ const IngredientBankPage = () => {
         }
     };
 
-    // Handle search input change for suggestions
+    // Handle search input change for suggestions (debounced)
     const handleSearchInputChange = (searchTerm) => {
-        fetchSuggestions(searchTerm);
+        setSearchInput(searchTerm);
+        // Don't call fetchSuggestions directly - let the debounced effect handle it
     };
 
     // Handle suggestion click
     const handleSuggestionClick = (suggestion) => {
         const searchText = suggestion.text || suggestion.vietnamese_text || '';
         setSearchPattern(searchText);
+        setSearchInput(searchText); // Update input as well
         setCurrentPage(0);
         setShowSuggestions(false);
         
@@ -146,6 +163,7 @@ const IngredientBankPage = () => {
         if (suggestion.type === 'category') {
             setActiveCategory(suggestion.category);
             setSearchPattern(''); // Clear search when selecting category
+            setSearchInput(''); // Clear input as well
         }
     };
 
@@ -158,6 +176,7 @@ const IngredientBankPage = () => {
             // Clear search when changing category
             if (searchPattern) {
                 setSearchPattern('');
+                setSearchInput(''); // Clear input as well
             }
         }
     };
@@ -173,6 +192,7 @@ const IngredientBankPage = () => {
     // Clear all filters
     const clearFilters = () => {
         setSearchPattern('');
+        setSearchInput(''); // Clear input as well
         setActiveCategory("Tất cả");
         setCurrentPage(0);
         setShowSuggestions(false);
@@ -303,36 +323,47 @@ const IngredientBankPage = () => {
                         />
                         
                         {/* Suggestions dropdown */}
-                        {showSuggestions && suggestions.length > 0 && (
+                        {showSuggestions && (
                             <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-                                {suggestions.map((suggestion, index) => (
-                                    <div
-                                        key={index}
-                                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
-                                        onClick={() => handleSuggestionClick(suggestion)}
-                                    >
-                                        <div className="font-medium text-gray-900">
-                                            {suggestion.text}
-                                        </div>
-                                        {suggestion.vietnamese_text && suggestion.vietnamese_text !== suggestion.text && (
-                                            <div className="text-sm text-gray-500">
-                                                {suggestion.vietnamese_text}
+                                {isLoadingSuggestions ? (
+                                    <div className="px-4 py-3 text-center">
+                                        <div className="animate-spin inline-block w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full mr-2"></div>
+                                        <span className="text-gray-600">Đang tải gợi ý...</span>
+                                    </div>
+                                ) : suggestions.length > 0 ? (
+                                    suggestions.map((suggestion, index) => (
+                                        <div
+                                            key={index}
+                                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                            onClick={() => handleSuggestionClick(suggestion)}
+                                        >
+                                            <div className="font-medium text-gray-900">
+                                                {suggestion.text}
                                             </div>
-                                        )}
-                                        <div className="flex items-center justify-between">
-                                            <div className="text-xs text-orange-500">
-                                                {suggestion.type === 'name' && 'Tên tiếng Anh'}
-                                                {suggestion.type === 'vietnamese_name' && 'Tên tiếng Việt'}
-                                                {suggestion.type === 'category' && 'Danh mục'}
-                                            </div>
-                                            {suggestion.category && suggestion.type !== 'category' && (
-                                                <div className="text-xs text-gray-400">
-                                                    {suggestion.category}
+                                            {suggestion.vietnamese_text && suggestion.vietnamese_text !== suggestion.text && (
+                                                <div className="text-sm text-gray-500">
+                                                    {suggestion.vietnamese_text}
                                                 </div>
                                             )}
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-xs text-orange-500">
+                                                    {suggestion.type === 'name' && 'Tên tiếng Anh'}
+                                                    {suggestion.type === 'vietnamese_name' && 'Tên tiếng Việt'}
+                                                    {suggestion.type === 'category' && 'Danh mục'}
+                                                </div>
+                                                {suggestion.category && suggestion.type !== 'category' && (
+                                                    <div className="text-xs text-gray-400">
+                                                        {suggestion.category}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
+                                    ))
+                                ) : (
+                                    <div className="px-4 py-3 text-center text-gray-500">
+                                        Không tìm thấy gợi ý phù hợp
                                     </div>
-                                ))}
+                                )}
                             </div>
                         )}
                     </div>

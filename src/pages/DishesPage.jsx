@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Header from '../components/Header';
 import Navbar from '../components/Navbar';
 import SearchBar from '../components/SearchBar';
 import Footer from '../components/Footer';
 import DishCard from '../components/DishCard';
 import { dishService } from '../services/dishService';
+import { useDebounce } from '../hooks/useDebounce';
 
 const DishesPage = () => {
     const [dishes, setDishes] = useState([]);
@@ -18,10 +19,15 @@ const DishesPage = () => {
     const [selectedCategory, setSelectedCategory] = useState('');
     const [suggestions, setSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [searchInput, setSearchInput] = useState(''); // New state for input
+    const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
     const pageSize = 12;
 
+    // Debounce search input for suggestions (300ms delay)
+    const debouncedSearchInput = useDebounce(searchInput, 500);
+
     // Fetch dishes với tham số mới
-    const fetchDishes = async (page, pattern, category = '') => {
+    const fetchDishes = useCallback(async (page, pattern, category = '') => {
         setLoading(true);
         setError(null);
         
@@ -37,7 +43,6 @@ const DishesPage = () => {
                 setDishes(response.dishes || []);
                 setTotalDishes(response.numDishes || 0);
                 
-                // Tính toán số trang từ response hoặc từ pagination info
                 const calculatedTotalPages = response.pagination 
                     ? response.pagination.totalPages 
                     : Math.ceil((response.numDishes || 0) / pageSize);
@@ -53,10 +58,10 @@ const DishesPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [pageSize]);
 
     // Fetch categories
-    const fetchCategories = async () => {
+    const fetchCategories = useCallback(async () => {
         try {
             const response = await dishService.getDishCategories();
             if (response && response.categories) {
@@ -65,15 +70,18 @@ const DishesPage = () => {
         } catch (error) {
             console.error("Error fetching categories:", error);
         }
-    };
+    }, []);
 
-    // Fetch suggestions
-    const fetchSuggestions = async (query) => {
+    // Fetch suggestions with debounced input
+    const fetchSuggestions = useCallback(async (query) => {
         if (!query || query.length < 2) {
             setSuggestions([]);
             setShowSuggestions(false);
+            setIsLoadingSuggestions(false);
             return;
         }
+
+        setIsLoadingSuggestions(true);
 
         try {
             const response = await dishService.getDishSuggestions(query, 10);
@@ -85,20 +93,27 @@ const DishesPage = () => {
             console.error("Error fetching suggestions:", error);
             setSuggestions([]);
             setShowSuggestions(false);
+        } finally {
+            setIsLoadingSuggestions(false);
         }
-    };
+    }, []);
 
     // Load initial data
     useEffect(() => {
         fetchCategories();
-    }, []);
+    }, [fetchCategories]);
 
     // Fetch dishes when page, search, or category changes
     useEffect(() => {
         fetchDishes(currentPage, searchPattern, selectedCategory);
-    }, [currentPage, searchPattern, selectedCategory]);
+    }, [fetchDishes, currentPage, searchPattern, selectedCategory]);
 
-    // Handle search
+    // Fetch suggestions when debounced search input changes
+    useEffect(() => {
+        fetchSuggestions(debouncedSearchInput);
+    }, [debouncedSearchInput, fetchSuggestions]);
+
+    // Handle search form submission
     const handleSearch = (searchTerm) => {
         if (searchTerm.toLowerCase() !== searchPattern.toLowerCase()) {
             setCurrentPage(0);
@@ -107,14 +122,17 @@ const DishesPage = () => {
         }
     };
 
-    // Handle search input change for suggestions
+    // Handle search input change for suggestions (debounced)
     const handleSearchInputChange = (searchTerm) => {
-        fetchSuggestions(searchTerm);
+        setSearchInput(searchTerm);
+        // Don't call fetchSuggestions directly - let the debounced effect handle it
     };
 
     // Handle suggestion click
     const handleSuggestionClick = (suggestion) => {
-        setSearchPattern(suggestion.text);
+        const searchText = suggestion.text || suggestion.vietnamese_text || '';
+        setSearchPattern(searchText);
+        setSearchInput(searchText); // Update input as well
         setCurrentPage(0);
         setShowSuggestions(false);
     };
@@ -134,6 +152,7 @@ const DishesPage = () => {
     // Clear filters
     const clearFilters = () => {
         setSearchPattern('');
+        setSearchInput(''); // Clear input as well
         setSelectedCategory('');
         setCurrentPage(0);
         setShowSuggestions(false);
@@ -239,27 +258,38 @@ const DishesPage = () => {
                         />
                         
                         {/* Suggestions dropdown */}
-                        {showSuggestions && suggestions.length > 0 && (
+                        {showSuggestions && (
                             <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-                                {suggestions.map((suggestion, index) => (
-                                    <div
-                                        key={index}
-                                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
-                                        onClick={() => handleSuggestionClick(suggestion)}
-                                    >
-                                        <div className="font-medium text-gray-900">
-                                            {suggestion.text}
-                                        </div>
-                                        {suggestion.vietnamese_text && suggestion.vietnamese_text !== suggestion.text && (
-                                            <div className="text-sm text-gray-500">
-                                                {suggestion.vietnamese_text}
-                                            </div>
-                                        )}
-                                        <div className="text-xs text-orange-500">
-                                            {suggestion.type === 'dish_name' ? 'Tên món ăn' : 'Tên tiếng Việt'}
-                                        </div>
+                                {isLoadingSuggestions ? (
+                                    <div className="px-4 py-3 text-center">
+                                        <div className="animate-spin inline-block w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full mr-2"></div>
+                                        <span className="text-gray-600">Đang tải gợi ý...</span>
                                     </div>
-                                ))}
+                                ) : suggestions.length > 0 ? (
+                                    suggestions.map((suggestion, index) => (
+                                        <div
+                                            key={index}
+                                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                            onClick={() => handleSuggestionClick(suggestion)}
+                                        >
+                                            <div className="font-medium text-gray-900">
+                                                {suggestion.text}
+                                            </div>
+                                            {suggestion.vietnamese_text && suggestion.vietnamese_text !== suggestion.text && (
+                                                <div className="text-sm text-gray-500">
+                                                    {suggestion.vietnamese_text}
+                                                </div>
+                                            )}
+                                            <div className="text-xs text-orange-500">
+                                                {suggestion.type === 'dish_name' ? 'Tên món ăn' : 'Tên tiếng Việt'}
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="px-4 py-3 text-center text-gray-500">
+                                        Không tìm thấy gợi ý phù hợp
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

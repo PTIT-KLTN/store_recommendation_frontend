@@ -1,10 +1,7 @@
-// components/auth/ForgotPassword.jsx
 import React, { useState } from 'react';
 import { HiArrowNarrowRight } from "react-icons/hi";
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import StatisticsSidebar from './StatisticsSidebar';
-import { images } from '../../assets/assets';
 import { authService } from '../../services/authService';
 
 const ForgotPassword = () => {

@@ -1,10 +1,7 @@
-// components/auth/ResetPassword.jsx
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { HiArrowNarrowRight } from "react-icons/hi";
 import { toast } from 'react-toastify';
-import StatisticsSidebar from './StatisticsSidebar';
-import { images } from '../../assets/assets';
 import { authService } from '../../services/authService';
 
 const ResetPassword = () => {

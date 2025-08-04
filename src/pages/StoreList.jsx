@@ -439,8 +439,7 @@ const StoreList = () => {
                                                         <div className="flex items-start space-x-3 flex-1">
                                                             {/* Store Logo */}
                                                             <div 
-                                                                className="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden border"
-                                                                style={{ backgroundColor: `${getStoreBrandColor(store.chain)}10` }}
+                                                                className="flex-shrink-0 w-12 h-12  flex items-center justify-center overflow-hidden border"
                                                             >
                                                                 <img 
                                                                     src={getStoreLogo(store.chain)}

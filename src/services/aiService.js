@@ -2,28 +2,37 @@ import axiosPublic from './axiosPublic';
 import axiosPrivate from './axiosPrivate';
 
 export const aiService = {
-    getDishSuggestionByText: async (textInput) => {
+
+    recipeAnalysis: async (userInput) => {
         try {
-            const response = await axiosPrivate.post('/ai/text', { description: textInput });
+            const response = await axiosPublic.post('/ai/recipe-analysis', {
+                user_input: userInput
+            });
+            console.log("AI Recipe Analysis Response:", response);
             return response.data;
         } catch (error) {
-            console.error("Error in dish suggestion by text API:", error);
+            console.error("Error in recipe analysis API:", error);
             throw error;
         }
     },
-    getDishSuggestionByImage: async (imageFile) => {
+
+    uploadAndAnalyze: async (imageFile, description = null) => {
         const formData = new FormData();
         formData.append('image', imageFile);
+        
+        if (description) {
+            formData.append('description', description);
+        }
 
         try {
-            const response = await axiosPrivate.post('ai/image', formData, {
+            const response = await axiosPublic.options('/ai/upload-and-analyze', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
             });
             return response.data;
         } catch (error) {
-            console.error("Error in dish suggestion API:", error);
+            console.error("Error in upload and analyze API:", error);
             throw error;
         }
     }

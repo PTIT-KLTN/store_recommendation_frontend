@@ -150,7 +150,7 @@ const HomePage = () => {
             setAiLoading(true);
             setAiError(null);
             const response = await aiService.recipeAnalysis(textInput);
-            
+
             if (response) {
                 setAiResult(response);
                 // Open modal with AI result
@@ -205,7 +205,7 @@ const HomePage = () => {
             setAiLoading(true);
             setAiError(null);
             const response = await aiService.uploadAndAnalyze(selectedImage, imageDescription || null);
-            
+
             if (response.success && response.result) {
                 setAiResult(response.result);
                 // Open modal with AI result
@@ -234,61 +234,55 @@ const HomePage = () => {
         <div className="min-h-screen bg-gray-50">
             <Header />
             <Navbar />
-
             {/* Hero Section with AI Analysis */}
             <section
                 className="relative py-20 mb-8 overflow-hidden"
                 style={{
-                        backgroundImage: `url(${images.background})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        backgroundRepeat: 'no-repeat'
-                    }}
+                    backgroundImage: `url(${images.background})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat'
+                }}
             >
                 {/* Overlay để tạo độ tương phản */}
-                <div className="absolute inset-0 bg-black bg-opacity-50"></div>
+                <div className="absolute inset-0 bg-black bg-opacity-40"></div>
 
                 {/* Content */}
                 <div className="container mx-auto px-4 relative z-10">
                     {/* Hero Text */}
-                    <div className="text-center max-w-4xl mx-auto mb-8">
-                        <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 drop-shadow-lg">
-                            Ứng dụng gợi ý của hàng mua sắm
+                    <div className="text-center max-w-6xl mx-auto mb-8">
+                        <h1 className="text-3xl md:text-5xl font-bold text-white mb-4 drop-shadow-lg">
+                            Ứng dụng gợi ý cửa hàng mua sắm thông minh
                         </h1>
                         <p className="text-white text-xl md:text-2xl mb-4 drop-shadow-md">
                             Khám phá nguyên liệu tươi ngon và món ăn ngon miệng từ các đối tác uy tín
                         </p>
                     </div>
 
-                    {/* AI Recipe Analysis Box */}
-                    <div className="bg-white rounded-lg shadow-2xl p-6 max-w-4xl mx-auto">
-                        <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">
-                            🍳 Phân tích món ăn bằng AI
-                        </h2>
-                        <p className="text-gray-600 text-center mb-6">
+                    {/* AI Recipe Analysis Box - Fully Transparent */}
+                    <div className="backdrop-blur-md bg-white/10 rounded-2xl shadow-2xl p-6 max-w-4xl mx-auto border border-white/20">
+                        <p className="text-white text-center mb-6 drop-shadow-md">
                             Nhập mô tả hoặc tải lên hình ảnh món ăn để nhận gợi ý nguyên liệu và công thức nấu ăn
                         </p>
 
                         {/* Tabs */}
-                        <div className="flex border-b border-gray-200 mb-6">
+                        <div className="flex border-b border-white/30 mb-6">
                             <button
                                 onClick={() => setActiveTab('text')}
-                                className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
-                                    activeTab === 'text'
-                                        ? 'border-b-2 border-orange-500 text-orange-600'
-                                        : 'text-gray-500 hover:text-gray-700'
-                                }`}
+                                className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${activeTab === 'text'
+                                        ? 'border-b-2 border-orange-400 text-orange-300'
+                                        : 'text-white/80 hover:text-white'
+                                    }`}
                             >
                                 <FiMessageSquare />
                                 Nhập văn bản
                             </button>
                             <button
                                 onClick={() => setActiveTab('image')}
-                                className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
-                                    activeTab === 'image'
-                                        ? 'border-b-2 border-orange-500 text-orange-600'
-                                        : 'text-gray-500 hover:text-gray-700'
-                                }`}
+                                className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${activeTab === 'image'
+                                        ? 'border-b-2 border-orange-400 text-orange-300'
+                                        : 'text-white/80 hover:text-white'
+                                    }`}
                             >
                                 <FiImage />
                                 Tải hình ảnh
@@ -299,22 +293,22 @@ const HomePage = () => {
                         {activeTab === 'text' && (
                             <form onSubmit={handleTextAnalysis} className="space-y-4">
                                 <div>
-                                    <label className="block text-gray-700 font-medium mb-2">
+                                    <label className="block text-white font-medium mb-2 drop-shadow">
                                         Mô tả món ăn bạn muốn nấu:
                                     </label>
                                     <textarea
                                         value={textInput}
                                         onChange={(e) => setTextInput(e.target.value)}
                                         placeholder="Ví dụ: Tôi muốn nấu phở bò..."
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
-                                        rows="4"
+                                        className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-transparent resize-none text-white placeholder-white/60"
+                                        rows="6"
                                         disabled={aiLoading}
                                     />
                                 </div>
                                 <button
                                     type="submit"
                                     disabled={aiLoading || !textInput.trim()}
-                                    className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-6 rounded-lg transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    className="w-full bg-orange-500/90 hover:bg-orange-600/90 backdrop-blur-sm text-white font-medium py-3 px-6 rounded-lg transition-colors disabled:bg-gray-500/50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     {aiLoading ? (
                                         <>
@@ -332,7 +326,7 @@ const HomePage = () => {
                         {activeTab === 'image' && (
                             <form onSubmit={handleImageAnalysis} className="space-y-4">
                                 <div>
-                                    <label className="block text-gray-700 font-medium mb-2">
+                                    <label className="block text-white font-medium mb-2 drop-shadow">
                                         Chọn hình ảnh món ăn:
                                     </label>
                                     <input
@@ -343,17 +337,17 @@ const HomePage = () => {
                                         className="hidden"
                                         disabled={aiLoading}
                                     />
-                                    
+
                                     {!imagePreview ? (
                                         <button
                                             type="button"
                                             onClick={() => fileInputRef.current?.click()}
-                                            className="w-full border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-orange-500 transition-colors flex flex-col items-center gap-2"
+                                            className="w-full border-2 border-dashed border-white/40 rounded-lg p-8 hover:border-orange-400 hover:bg-white/10 transition-colors flex flex-col items-center gap-2 backdrop-blur-sm bg-white/5"
                                             disabled={aiLoading}
                                         >
-                                            <FiImage className="text-4xl text-gray-400" />
-                                            <span className="text-gray-600">Nhấn để chọn hình ảnh</span>
-                                            <span className="text-sm text-gray-500">JPG, PNG, WEBP hoặc GIF (tối đa 10MB)</span>
+                                            <FiImage className="text-4xl text-white/80" />
+                                            <span className="text-white drop-shadow">Nhấn để chọn hình ảnh</span>
+                                            <span className="text-sm text-white/70 drop-shadow">JPG, PNG, WEBP hoặc GIF (tối đa 10MB)</span>
                                         </button>
                                     ) : (
                                         <div className="relative">
@@ -365,7 +359,7 @@ const HomePage = () => {
                                             <button
                                                 type="button"
                                                 onClick={clearImageSelection}
-                                                className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors"
+                                                className="absolute top-2 right-2 bg-red-500/90 hover:bg-red-600/90 backdrop-blur-sm text-white p-2 rounded-full transition-colors"
                                                 disabled={aiLoading}
                                             >
                                                 <FiX />
@@ -374,24 +368,10 @@ const HomePage = () => {
                                     )}
                                 </div>
 
-                                <div>
-                                    <label className="block text-gray-700 font-medium mb-2">
-                                        Mô tả bổ sung (tùy chọn):
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={imageDescription}
-                                        onChange={(e) => setImageDescription(e.target.value)}
-                                        placeholder="Ví dụ: Phở bò Việt Nam..."
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                                        disabled={aiLoading}
-                                    />
-                                </div>
-
                                 <button
                                     type="submit"
                                     disabled={aiLoading || !selectedImage}
-                                    className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-6 rounded-lg transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    className="w-full bg-orange-500/90 hover:bg-orange-600/90 backdrop-blur-sm text-white font-medium py-3 px-6 rounded-lg transition-colors disabled:bg-gray-500/50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     {aiLoading ? (
                                         <>
@@ -407,7 +387,7 @@ const HomePage = () => {
 
                         {/* Error Message */}
                         {aiError && (
-                            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                            <div className="mt-4 bg-red-500/20 backdrop-blur-sm border border-red-400/40 text-white px-4 py-3 rounded-lg">
                                 {aiError}
                             </div>
                         )}

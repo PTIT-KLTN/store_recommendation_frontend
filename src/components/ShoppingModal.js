@@ -3,14 +3,13 @@ import { FiX, FiAlertTriangle } from 'react-icons/fi';
 import { MdOutlineImageNotSupported } from "react-icons/md";
 import { toast } from 'react-toastify';
 import { useBasket } from '../context/BasketContext';
-import { AIWarnings, AISuggestions, AISimilarDishes, AIInsights } from './AIComponents';
+import { AIWarnings, AISuggestions, AISimilarDishes } from './AIComponents';
 
 const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
     const [quantity, setQuantity] = useState(1);
     const [dishWithIngredients, setDishWithIngredients] = useState(null);
     const { addIngredient, addDish } = useBasket();
     const [selectedIngredients, setSelectedIngredients] = useState({});
-    const [selectedOptionalIngredients, setSelectedOptionalIngredients] = useState({});
     const [selectedSuggestions, setSelectedSuggestions] = useState({});
 
     // Check if this is an AI result
@@ -19,9 +18,9 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
     // Quantity limits based on type
     const getQuantityLimit = () => {
         if (type === 'dish' || isAiResult) {
-            return 10; 
+            return 10;
         }
-        return 5000; 
+        return 5000;
     };
 
     useEffect(() => {
@@ -39,28 +38,23 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                 if (itemData.cart && itemData.cart.items) {
                     const aiDish = {
                         id: 'ai_' + Date.now(),
-                        name: itemData.dish?.name || 'Món ăn từ AI',
-                        vietnamese_name: itemData.dish?.name || 'Món ăn từ AI',
+                        name: itemData.dish.name,
+                        vietnamese_name: itemData.dish.name,
                         image: null,
                         servings: itemData.dish?.servings || 1,
                         ingredients: itemData.cart.items.map(item => ({
-                            _id: item.ingredient_id || 'ai_ing_' + Math.random(),
-                            ingredient_name: item.name_en || item.name_vi,
+                            _id: item.ingredient_id,
                             vietnamese_name: item.name_vi,
                             image: null,
                             quantity: item.quantity,
-                            unit: item.unit,
-                            category: item.category,
-                            estimated_price: item.estimated_price
+                            category: item.category
                         })),
                         // Store AI-specific data
                         aiData: {
                             suggestions: itemData.suggestions || [],
                             warnings: itemData.warnings || [],
                             similar_dishes: itemData.similar_dishes || [],
-                            insights: itemData.insights || [],
-                            prep_time: itemData.dish?.prep_time,
-                            servings: itemData.dish?.servings
+                            insights: itemData.insights || []
                         }
                     };
                     setDishWithIngredients(aiDish);
@@ -93,20 +87,10 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                 }
                 setSelectedIngredients(initialSelected);
 
-                // Auto-select ALL optional ingredients
-                const initialOptionalSelected = {};
-                if (itemData.optionalIngredients) {
-                    itemData.optionalIngredients.forEach(ing => {
-                        const key = ing.ingredient_name;
-                        initialOptionalSelected[key] = true;
-                    });
-                }
-                setSelectedOptionalIngredients(initialOptionalSelected);
-            }
+                           }
         } else {
             setDishWithIngredients(null);
             setSelectedIngredients({});
-            setSelectedOptionalIngredients({});
             setSelectedSuggestions({});
         }
     }, [isOpen, type, itemData, isAiResult]);
@@ -116,7 +100,7 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
     const handleQuantityChange = (value) => {
         const parsedValue = parseInt(value, 10);
         const maxQuantity = getQuantityLimit();
-        
+
         if (isNaN(parsedValue) || parsedValue < 1) {
             setQuantity(1);
         } else if (parsedValue > maxQuantity) {
@@ -142,18 +126,12 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
         }
     };
 
-    const toggleIngredient = (id, isOptional = false) => {
-        if (isOptional) {
-            setSelectedOptionalIngredients(prev => ({
-                ...prev,
-                [id]: !prev[id]
-            }));
-        } else {
-            setSelectedIngredients(prev => ({
-                ...prev,
-                [id]: !prev[id]
-            }));
-        }
+    const toggleIngredient = (id) => {
+      
+        setSelectedIngredients(prev => ({
+            ...prev,
+            [id]: !prev[id]
+        }));
     };
 
     const toggleSuggestion = (id) => {
@@ -181,24 +159,6 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                         quantity: ingredient.quantity,
                         unit: ingredient.unit,
                         category: ingredient.category,
-                        estimated_price: ingredient.estimated_price
-                    }));
-
-                // Get selected optional ingredients
-                const selectedOptIngredients = (dishWithIngredients.optionalIngredients || [])
-                    .filter(ing => {
-                        const key = ing.ingredient_name;
-                        return selectedOptionalIngredients[key];
-                    })
-                    .map(ingredient => ({
-                        id: ingredient._id,
-                        name: ingredient.ingredient_name,
-                        vietnamese_name: ingredient.vietnamese_name,
-                        imageUrl: ingredient.image,
-                        net_unit_value: ingredient.net_unit_value,
-                        quantity: ingredient.quantity,
-                        unit: ingredient.unit,
-                        category: ingredient.category
                     }));
 
                 // Get selected suggestions (for AI results)
@@ -221,8 +181,7 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                 }
 
                 const allSelectedIngredients = [
-                    ...selectedMainIngredients, 
-                    ...selectedOptIngredients,
+                    ...selectedMainIngredients,
                     ...selectedSuggestionIngredients
                 ];
 
@@ -243,7 +202,7 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                 await addDish(dish);
                 toast.success(`Đã thêm món "${dish.vietnamese_name}" vào giỏ hàng!`);
                 onClose();
-            } 
+            }
             else if (type === 'ingredient') {
                 if (!itemData.id || !itemData.name) {
                     toast.error('Thông tin nguyên liệu không hợp lệ');
@@ -356,11 +315,11 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
     // Handle error states for AI results
     if (isAiResult && itemData && (itemData.status === 'error' || itemData.status === 'guardrail_blocked')) {
         return (
-            <div 
+            <div
                 className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
                 onClick={onClose}
             >
-                <div 
+                <div
                     className="bg-white rounded-3xl w-full max-w-md"
                     onClick={(e) => e.stopPropagation()}
                 >
@@ -394,24 +353,18 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
     }
 
     return (
-        <div 
+        <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
             onClick={onClose}
         >
-            <div 
-                className="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-y-auto"
+            <div
+                className="bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
                 <div className="flex justify-between items-start p-6 border-b border-gray-200 sticky top-0 bg-white rounded-t-3xl z-10">
                     <div className="flex-1">
                         <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-                        {isAiResult && dishWithIngredients?.aiData?.prep_time && (
-                            <p className="text-gray-600 text-sm mt-1">⏱️ Thời gian: {dishWithIngredients.aiData.prep_time}</p>
-                        )}
-                        {isAiResult && dishWithIngredients?.aiData?.servings && (
-                            <p className="text-gray-600 text-sm">👥 Khẩu phần gốc: {dishWithIngredients.aiData.servings} người</p>
-                        )}
                         {searchQuery && (
                             <p className="text-sm text-gray-500 mt-2">
                                 Kết quả cho: <span className="font-medium">"{searchQuery}"</span>
@@ -426,14 +379,8 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                 <div className="flex flex-col md:flex-row">
                     {/* Left content */}
                     <div className="flex-1 p-6">
-                        {/* AI Components */}
-                        {isAiResult && dishWithIngredients?.aiData && (
-                            <>
-                                <AIWarnings warnings={dishWithIngredients.aiData.warnings} />
-                            </>
-                        )}
+                        
 
-                        {/* Main ingredients */}
                         {(type === 'dish' || isAiResult) && dishWithIngredients?.ingredients && (
                             <div className="mb-6">
                                 <h3 className="text-xl font-bold mb-4">
@@ -443,77 +390,22 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                                     {dishWithIngredients.ingredients.map((ing, idx) => {
                                         const key = ing.ingredient_name;
                                         const isSelected = selectedIngredients[key];
-                                        
+
                                         return (
-                                            <li 
-                                                key={ing._id || idx} 
-                                                className={`flex items-center py-3 px-4 rounded-lg border-2 cursor-pointer ${
-                                                    isSelected ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
-                                                }`}
-                                                onClick={() => toggleIngredient(key)}
-                                            >
+                                            <li key={idx} className={`flex items-center`} onClick={() => toggleIngredient(key)}>
                                                 <input
-                                                    type="checkbox"
-                                                    checked={isSelected}
-                                                    onChange={() => toggleIngredient(key)}
-                                                    className="w-5 h-5 mr-3"
-                                                    onClick={(e) => e.stopPropagation()}
+                                                    type="checkbox" checked={isSelected} onChange={() => toggleIngredient(key)}
+                                                    className="w-5 h-5 mr-3" onClick={(e) => e.stopPropagation()}
                                                 />
                                                 <div className="flex flex-1 justify-between items-center">
-                                                    <span className="font-medium">{ing.vietnamese_name || ing.name}</span>
+                                                    <span className="font-medium">{ing.vietnamese_name}</span>
                                                     <div className="text-right">
-                                                        {ing.quantity && ing.unit && (
+                                                        {ing.unit || ing.quantity && (
                                                             <span className="text-gray-700">
-                                                                {ing.quantity} <span className="text-gray-500">{ing.unit}</span>
+                                                               <span className="text-gray-500">{ing.unit || ing.quantity}</span>
                                                             </span>
                                                         )}
-                                                        {ing.estimated_price && (
-                                                            <div className="text-sm text-green-600">
-                                                                ~{ing.estimated_price.toLocaleString()}đ
-                                                            </div>
-                                                        )}
                                                     </div>
-                                                </div>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </div>
-                        )}
-
-                        {/* Optional ingredients */}
-                        {dishWithIngredients?.optionalIngredients?.length > 0 && (
-                            <div className="mb-6">
-                                <h3 className="text-xl font-bold mb-4">
-                                    Nguyên liệu tùy chọn ({dishWithIngredients.optionalIngredients.length})
-                                </h3>
-                                <ul className="space-y-2">
-                                    {dishWithIngredients.optionalIngredients.map((ing, idx) => {
-                                        const key = ing.ingredient_name;
-                                        const isSelected = selectedOptionalIngredients[key];
-                                        
-                                        return (
-                                            <li 
-                                                key={ing._id || idx} 
-                                                className={`flex items-center py-3 px-4 rounded-lg border-2 cursor-pointer ${
-                                                    isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-                                                }`}
-                                                onClick={() => toggleIngredient(key, true)}
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isSelected}
-                                                    onChange={() => toggleIngredient(key, true)}
-                                                    className="w-5 h-5 mr-3"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                />
-                                                <div className="flex flex-1 justify-between">
-                                                    <span className="font-medium">{ing.vietnamese_name || ing.name}</span>
-                                                    {ing.quantity && ing.unit && (
-                                                        <span className="text-gray-700">
-                                                            {ing.quantity} <span className="text-gray-500">{ing.unit}</span>
-                                                        </span>
-                                                    )}
                                                 </div>
                                             </li>
                                         );
@@ -525,13 +417,12 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                         {/* AI Suggestions & Info */}
                         {isAiResult && dishWithIngredients?.aiData && (
                             <>
-                                <AISuggestions 
+                                <AISuggestions
                                     suggestions={dishWithIngredients.aiData.suggestions}
                                     selectedSuggestions={selectedSuggestions}
                                     onToggle={toggleSuggestion}
                                 />
                                 <AISimilarDishes similarDishes={dishWithIngredients.aiData.similar_dishes} />
-                                <AIInsights insights={dishWithIngredients.aiData.insights} />
                             </>
                         )}
 
@@ -548,7 +439,7 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                                                         src={item.image}
                                                         alt={item.vietnamese_name}
                                                         className="w-8 h-8 rounded-full mr-2 object-cover"
-                                                        onError={(e) => {e.target.src = '/images/default-ingredient.jpg'}}
+                                                        onError={(e) => { e.target.src = '/images/default-ingredient.jpg' }}
                                                     />
                                                 )}
                                                 <span className="font-medium">{item.vietnamese_name || item.name}</span>
@@ -563,6 +454,12 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                                 </ul>
                             </div>
                         )}
+                        {/* AI Components */}
+                        {isAiResult && dishWithIngredients?.aiData && (
+                            <>
+                                <AIWarnings warnings={dishWithIngredients.aiData.warnings} />
+                            </>
+                        )}
 
                         {/* Quantity controls */}
                         <div className="mb-6">
@@ -576,8 +473,8 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                                     <span className="text-xl font-bold">−</span>
                                 </button>
                                 <input
-                                    type="number" 
-                                    min="1" 
+                                    type="number"
+                                    min="1"
                                     max={maxQuantity}
                                     value={quantity}
                                     onChange={(e) => handleQuantityChange(e.target.value)}

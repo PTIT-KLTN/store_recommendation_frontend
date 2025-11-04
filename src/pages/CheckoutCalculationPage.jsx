@@ -536,7 +536,7 @@ const CheckoutCalculation = () => {
                 {/* Product details */}
                 <div className="text-xs text-gray-500 mt-2 pl-2 border-l-2 border-gray-200">
                     <div className="mb-1">
-                        <span className="font-medium">Đơn giá:</span> {formatPrice(product.price)}đ/{product.unit}
+                        <span className="font-medium">Đơn giá:</span> {formatPrice(product.price)}đ/{product.product_net_unit_value}{product.unit}
                     </div>
                     <div className="mb-1">
                         <span className="font-medium">Tổng tiền:</span> {formatPrice(product.cost)}đ

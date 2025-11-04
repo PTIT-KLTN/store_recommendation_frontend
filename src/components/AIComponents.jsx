@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiAlertTriangle, FiInfo } from 'react-icons/fi';
+import { FiAlertTriangle } from 'react-icons/fi';
 
 // Component hiển thị warnings
 export const AIWarnings = ({ warnings }) => {
@@ -26,7 +26,7 @@ export const AISuggestions = ({ suggestions, selectedSuggestions, onToggle }) =>
     
     return (
         <div className="mb-4">
-            <h4 className="font-bold text-gray-800 mb-2">💡 Gợi ý bổ sung ({suggestions.length})</h4>
+            <h4 className="font-bold text-gray-800 mb-2">Gợi ý bổ sung ({suggestions.length})</h4>
             <ul className="space-y-2">
                 {suggestions.map((sug, idx) => {
                     const key = sug.ingredient_id || sug.name_vi;
@@ -66,12 +66,12 @@ export const AISimilarDishes = ({ similarDishes }) => {
     
     return (
         <div className="mb-4">
-            <h4 className="font-bold text-gray-800 mb-2">🔍 Món ăn tương tự</h4>
+            <h4 className="font-bold text-gray-800 mb-2">Bạn có thể tìm kiếm món ăn tương tự</h4>
             <ul className="text-sm space-y-1">
                 {similarDishes.map((dish, idx) => (
                     <li key={dish.dish_id || idx} className="text-gray-700">
-                        • <span className="font-medium">{dish.name}</span>
-                        {dish.match_count && <span className="text-gray-500"> ({dish.match_count} giống)</span>}
+                        • <span className="font-medium">{dish.dish_name}</span>
+                        {dish.match_count && <span className="text-gray-500"> ({dish.match_count} nguyên liệu giống)</span>}
                     </li>
                 ))}
             </ul>
@@ -79,21 +79,3 @@ export const AISimilarDishes = ({ similarDishes }) => {
     );
 };
 
-// Component hiển thị insights
-export const AIInsights = ({ insights }) => {
-    if (!insights || insights.length === 0) return null;
-    
-    return (
-        <div className="mb-4 border-l-4 border-blue-500 bg-blue-50 p-4 rounded">
-            <div className="flex items-center gap-2 mb-2">
-                <FiInfo className="text-blue-600" />
-                <h4 className="font-bold text-blue-800">Thông tin thêm</h4>
-            </div>
-            <ul className="text-sm text-blue-700 space-y-1">
-                {insights.map((insight, idx) => (
-                    <li key={idx}>• {insight.message || insight}</li>
-                ))}
-            </ul>
-        </div>
-    );
-};

@@ -229,6 +229,8 @@ const BasketPage = () => {
     };
 
     const handleCalculateCart = async () => {
+
+        // check user location & basket before calling api 
         try {
             setCalculating(true);
 

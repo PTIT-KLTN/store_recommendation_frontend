@@ -10,6 +10,7 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
     const [dishWithIngredients, setDishWithIngredients] = useState(null);
     const { addIngredient, addDish } = useBasket();
     const [selectedIngredients, setSelectedIngredients] = useState({});
+    const [selectedOptionalIngredients, setSelectedOptionalIngredients] = useState({});
     const [selectedSuggestions, setSelectedSuggestions] = useState({});
 
     // Check if this is an AI result
@@ -18,9 +19,9 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
     // Quantity limits based on type
     const getQuantityLimit = () => {
         if (type === 'dish' || isAiResult) {
-            return 10;
+            return 10; 
         }
-        return 5000;
+        return 5000; 
     };
 
     useEffect(() => {
@@ -44,9 +45,11 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                         servings: itemData.dish?.servings || 1,
                         ingredients: itemData.cart.items.map(item => ({
                             _id: item.ingredient_id,
+                            ingredient_name: item.name_vi,
                             vietnamese_name: item.name_vi,
                             image: null,
                             quantity: item.quantity,
+                            unit: item.unit,
                             category: item.category
                         })),
                         // Store AI-specific data
@@ -66,31 +69,49 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                         initialSelected[key] = true;
                     });
                     setSelectedIngredients(initialSelected);
-                    setSelectedSuggestions({});
+
+                    // Auto-select suggestions
+                    const initialSuggestions = {};
+                    if (itemData.suggestions) {
+                        itemData.suggestions.forEach(sug => {
+                            const key = sug.ingredient_id || sug.name_vi;
+                            initialSuggestions[key] = false;
+                        });
+                    }
+                    setSelectedSuggestions(initialSuggestions);
                 }
-            }
-            // Handle regular dish
-            else if (type === 'dish' && itemData) {
+            } else if (type === 'dish' && itemData) {
                 if (itemData.ingredients && itemData.ingredients.length > 0) {
                     setDishWithIngredients(itemData);
                 } else {
                     setDishWithIngredients(itemData);
                 }
 
-                // Auto-select ALL main ingredients
+                // FIX 1: Auto-select ALL main ingredients (set to true)
                 const initialSelected = {};
                 if (itemData.ingredients) {
                     itemData.ingredients.forEach(ing => {
+                        // Use ingredient_name as key since there's no id field
                         const key = ing.ingredient_name;
                         initialSelected[key] = true;
                     });
                 }
                 setSelectedIngredients(initialSelected);
 
-                           }
+                // FIX 2: Auto-select ALL optional ingredients (set to true instead of false)
+                const initialOptionalSelected = {};
+                if (itemData.optionalIngredients) {
+                    itemData.optionalIngredients.forEach(ing => {
+                        const key = ing.ingredient_name;
+                        initialOptionalSelected[key] = true;
+                    });
+                }
+                setSelectedOptionalIngredients(initialOptionalSelected);
+            }
         } else {
             setDishWithIngredients(null);
             setSelectedIngredients({});
+            setSelectedOptionalIngredients({});
             setSelectedSuggestions({});
         }
     }, [isOpen, type, itemData, isAiResult]);
@@ -100,7 +121,7 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
     const handleQuantityChange = (value) => {
         const parsedValue = parseInt(value, 10);
         const maxQuantity = getQuantityLimit();
-
+        
         if (isNaN(parsedValue) || parsedValue < 1) {
             setQuantity(1);
         } else if (parsedValue > maxQuantity) {
@@ -126,12 +147,18 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
         }
     };
 
-    const toggleIngredient = (id) => {
-      
-        setSelectedIngredients(prev => ({
-            ...prev,
-            [id]: !prev[id]
-        }));
+    const toggleIngredient = (id, isOptional = false) => {
+        if (isOptional) {
+            setSelectedOptionalIngredients(prev => ({
+                ...prev,
+                [id]: !prev[id]
+            }));
+        } else {
+            setSelectedIngredients(prev => ({
+                ...prev,
+                [id]: !prev[id]
+            }));
+        }
     };
 
     const toggleSuggestion = (id) => {
@@ -144,51 +171,61 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
     const handleAddToCart = async () => {
         try {
             if ((type === 'dish' || isAiResult) && dishWithIngredients) {
-                // Get selected main ingredients
+                // FIX 3: Use ingredient_name for filtering
+
                 const selectedMainIngredients = (dishWithIngredients.ingredients || [])
                     .filter(ing => {
                         const key = ing.ingredient_name;
                         return selectedIngredients[key];
                     })
                     .map(ingredient => ({
-                        id: ingredient._id,
+                        id: ingredient._id, // Use _id from MongoDB
+                        name: ingredient.ingredient_name || ingredient.name,
+                        vietnamese_name: ingredient.vietnamese_name,
+                        imageUrl: ingredient.image,
+                        net_unit_value: ingredient.net_unit_value,
+                        quantity: ingredient.quantity,
+                        unit: ingredient.unit,
+                        category: ingredient.category
+                    }));
+
+                const selectedOptIngredients = (dishWithIngredients.optionalIngredients || [])
+                    .filter(ing => {
+                        const key = ing.ingredient_name;
+                        return selectedOptionalIngredients[key];
+                    })
+                    .map(ingredient => ({
+                        id: ingredient._id, // Use _id from MongoDB
                         name: ingredient.ingredient_name,
                         vietnamese_name: ingredient.vietnamese_name,
                         imageUrl: ingredient.image,
                         net_unit_value: ingredient.net_unit_value,
                         quantity: ingredient.quantity,
                         unit: ingredient.unit,
-                        category: ingredient.category,
+                        category: ingredient.category
                     }));
 
-                // Get selected suggestions (for AI results)
-                let selectedSuggestionIngredients = [];
+                // Handle AI suggestions if present
+                const selectedSuggestionsArray = [];
                 if (isAiResult && dishWithIngredients.aiData?.suggestions) {
-                    selectedSuggestionIngredients = dishWithIngredients.aiData.suggestions
-                        .filter(sug => {
-                            const key = sug.ingredient_id || sug.name_vi;
-                            return selectedSuggestions[key];
-                        })
-                        .map(suggestion => ({
-                            id: suggestion.ingredient_id || 'sug_' + Math.random(),
-                            name: suggestion.name_en || suggestion.name_vi,
-                            vietnamese_name: suggestion.name_vi,
-                            imageUrl: null,
-                            quantity: '100',
-                            unit: 'gram',
-                            category: 'suggestion'
-                        }));
+                    dishWithIngredients.aiData.suggestions.forEach(sug => {
+                        const key = sug.ingredient_id || sug.name_vi;
+                        if (selectedSuggestions[key]) {
+                            selectedSuggestionsArray.push({
+                                id: sug.ingredient_id,
+                                name: sug.name_en,
+                                vietnamese_name: sug.name_vi,
+                                imageUrl: null,
+                                net_unit_value: sug.net_unit_value || 100,
+                                quantity: sug.quantity || 100,
+                                unit: sug.unit || 'gram',
+                                category: sug.category
+                            });
+                        }
+                    });
                 }
 
-                const allSelectedIngredients = [
-                    ...selectedMainIngredients,
-                    ...selectedSuggestionIngredients
-                ];
-
-                if (allSelectedIngredients.length === 0) {
-                    toast.warning('Vui lòng chọn ít nhất một nguyên liệu');
-                    return;
-                }
+                const allSelectedIngredients = [...selectedMainIngredients, ...selectedOptIngredients, ...selectedSuggestionsArray];
 
                 const dish = {
                     id: dishWithIngredients.id,
@@ -200,32 +237,10 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                 };
 
                 await addDish(dish);
-                toast.success(`Đã thêm món "${dish.vietnamese_name}" vào giỏ hàng!`);
-                onClose();
-            }
-            else if (type === 'ingredient') {
-                if (!itemData.id || !itemData.name) {
-                    toast.error('Thông tin nguyên liệu không hợp lệ');
-                    return;
-                }
-
-                const ingredient = {
-                    id: itemData.id,
-                    name: itemData.name,
-                    vietnamese_name: itemData.vietnamese_name,
-                    imageUrl: itemData.image,
-                    quantity: quantity.toString(),
-                    unit: itemData.unit,
-                    net_unit_value: itemData.net_unit_value,
-                    category: itemData.category
-                };
-
-                await addIngredient(ingredient);
-                toast.success(`Đã thêm ${quantity} ${itemData.unit} ${itemData.vietnamese_name} vào giỏ hàng!`);
-                onClose();
-            }
-            else if ((type === 'ingredients' || type === 'search') && itemData) {
+                toast.success(`Đã thêm ${dish.vietnamese_name || dish.name} (${quantity} phần) vào giỏ hàng!`);
+            } else if ((type === 'ingredients' || type === 'search') && itemData) {
                 const ingredientsArray = itemData;
+                console.log (ingredientsArray)
                 for (const ingredient of ingredientsArray) {
                     const processedIngredient = {
                         id: ingredient.id,
@@ -250,67 +265,72 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                             : ingredientsArray[0].vietnamese_name} (${quantity} ${getUnit()}) vào giỏ hàng!`
                     );
                 }
-                onClose();
             }
 
             window.dispatchEvent(new CustomEvent('basketUpdated'));
-        } catch (error) {
-            console.error('Error adding to cart:', error);
-            toast.error('Có lỗi xảy ra khi thêm vào giỏ hàng');
-        }
-    };
 
-    const getTitle = () => {
-        if (isAiResult && itemData) {
-            if (itemData.status === 'error' || itemData.status === 'guardrail_blocked') {
-                return itemData.dish?.name || 'Lỗi phân tích';
-            }
-            return itemData.dish?.name || 'Kết quả phân tích AI';
+            onClose();
+        } catch (error) {
+            console.error("Error adding items to basket:", error);
+            toast.error("Không thể thêm vào giỏ hàng. Vui lòng thử lại sau.");
         }
-        if (type === 'dish' && dishWithIngredients) {
-            return dishWithIngredients.vietnamese_name || dishWithIngredients.name;
-        }
-        if (type === 'ingredient') {
-            return itemData?.vietnamese_name || itemData?.name;
-        }
-        if ((type === 'ingredients' || type === 'search') && itemData) {
-            if (Array.isArray(itemData) && itemData.length === 1) {
-                return itemData[0].vietnamese_name || itemData[0].name;
-            }
-            return 'Chi tiết nguyên liệu';
-        }
-        return 'Chi tiết';
     };
 
     const getUnit = () => {
-        if (type === 'dish' || isAiResult) {
-            return 'khẩu phần';
-        }
-        if ((type === 'ingredients' || type === 'search') && itemData) {
+        if (type === 'dish') {
+            return 'phần';
+        } else if ((type === 'ingredients' || type === 'search') && itemData) {
             if (Array.isArray(itemData) && itemData.length > 0) {
                 return itemData[0].unit || 'g';
             }
-            return itemData?.unit || 'g';
+            return Array.isArray(itemData) ? (itemData[0]?.unit || 'g') : (itemData?.unit || 'g');
         }
-        return itemData?.unit || 'g';
+        return 'g';
     };
 
-    const getImage = () => {
-        if (type === 'dish' && dishWithIngredients) {
-            return dishWithIngredients.image || dishWithIngredients.imageUrl;
-        }
-        if (type === 'ingredient') {
-            return itemData?.image;
-        }
-        return null;
-    };
+    let title = '';
+    let image = '';
+    let ingredients = [];
+    let optionalIngredients = [];
+    let showMultipleIngredients = false;
 
-    const title = getTitle();
-    const image = getImage();
+    if ((type === 'dish' || isAiResult) && dishWithIngredients) {
+        title = dishWithIngredients.vietnamese_name || dishWithIngredients.name;
+        image = dishWithIngredients.imageUrl || dishWithIngredients.image;
+        ingredients = (dishWithIngredients.ingredients || []).map(ing => ({
+            id: ing.ingredient_name, // Use ingredient_name as unique key
+            name: ing.vietnamese_name,
+            category: ing.category,
+            quantity: ing.quantity,
+            unit: ing.unit
+        }));
+
+        optionalIngredients = (dishWithIngredients.optionalIngredients || []).map(ing => ({
+            id: ing.ingredient_name, // Use ingredient_name as unique key
+            name: ing.vietnamese_name,
+            category: ing.category,
+            quantity: ing.quantity,
+            unit: ing.unit
+        }));
+    } else if (type === 'ingredients') {
+        if (itemData.length > 1) {
+            title = "Danh sách nguyên liệu";
+            showMultipleIngredients = true;
+            image = itemData[0]?.image;
+        } else {
+            const ingredient = Array.isArray(itemData) ? itemData[0] : itemData;
+            title = ingredient?.vietnamese_name || ingredient?.name || 'Nguyên liệu';
+            image = ingredient?.imageUrl || ingredient?.image || '';
+        }
+    } else if (type === 'search') {
+        title = `Kết quả cho "${searchQuery}"`;
+        showMultipleIngredients = Array.isArray(itemData) && itemData.length > 0;
+        image = Array.isArray(itemData) && itemData.length > 0
+            ? (itemData[0].imageUrl || itemData[0].image)
+            : '';
+    }
+
     const maxQuantity = getQuantityLimit();
-
-    // Check if showing multiple ingredients (from search)
-    const showMultipleIngredients = Array.isArray(itemData) && itemData.length > 1 && type !== 'dish' && !isAiResult;
 
     // Handle error states for AI results
     if (isAiResult && itemData && (itemData.status === 'error' || itemData.status === 'guardrail_blocked')) {
@@ -353,64 +373,54 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
     }
 
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
-            onClick={onClose}
-        >
-            <div
-                className="bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* Header */}
-                <div className="flex justify-between items-start p-6 border-b border-gray-200 sticky top-0 bg-white rounded-t-3xl z-10">
-                    <div className="flex-1">
-                        <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-                        {searchQuery && (
-                            <p className="text-sm text-gray-500 mt-2">
-                                Kết quả cho: <span className="font-medium">"{searchQuery}"</span>
-                            </p>
-                        )}
-                    </div>
-                    <button onClick={onClose} className="ml-4 text-gray-500 hover:text-gray-700">
-                        <FiX className="h-6 w-6" />
-                    </button>
-                </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-auto relative">
+                {/* Close button */}
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 z-10 bg-black text-white rounded-full w-10 h-10 flex items-center justify-center"
+                >
+                    <FiX size={24} />
+                </button>
 
                 <div className="flex flex-col md:flex-row">
                     {/* Left content */}
-                    <div className="flex-1 p-6">
-                        
+                    <div className="p-6 flex-1">
+                        <h2 className="text-2xl font-bold mb-6">
+                            {title}
+                        </h2>
 
-                        {(type === 'dish' || isAiResult) && dishWithIngredients?.ingredients && (
+                        {/* Dish ingredients list */}
+                        {(type === 'dish' || isAiResult) && ingredients.length > 0 && (
                             <div className="mb-6">
-                                <h3 className="text-xl font-bold mb-4">
-                                    Nguyên liệu chính ({dishWithIngredients.ingredients.length})
-                                </h3>
-                                <ul className="space-y-2">
-                                    {dishWithIngredients.ingredients.map((ing, idx) => {
-                                        const key = ing.ingredient_name;
-                                        const isSelected = selectedIngredients[key];
-
-                                        return (
-                                            <li key={idx} className={`flex items-center`} onClick={() => toggleIngredient(key)}>
-                                                <input
-                                                    type="checkbox" checked={isSelected} onChange={() => toggleIngredient(key)}
-                                                    className="w-5 h-5 mr-3" onClick={(e) => e.stopPropagation()}
-                                                />
-                                                <div className="flex flex-1 justify-between items-center">
-                                                    <span className="font-medium">{ing.vietnamese_name}</span>
-                                                    <div className="text-right">
-                                                        {ing.unit || ing.quantity && (
-                                                            <span className="text-gray-700">
-                                                               <span className="text-gray-500">{ing.unit || ing.quantity}</span>
-                                                            </span>
-                                                        )}
-                                                    </div>
+                                <h3 className="text-xl font-bold mb-4">Nguyên liệu chính</h3>
+                                <div className="bg-gray-50 rounded-lg p-3">
+                                    <ul className="divide-y divide-gray-200">
+                                        {ingredients.map((ing, index) => (
+                                            <li key={index} className="flex items-start pt-2">
+                                                <div className="flex items-center mr-3">
+                                                    <input
+                                                        type="checkbox"
+                                                        id={`ing-${ing.id}`}
+                                                        checked={selectedIngredients[ing.id]} // FIX 4: Use ing.id consistently
+                                                        onChange={() => toggleIngredient(ing.id)}
+                                                        className="w-4 h-4 text-green-600 border-gray-300 rounded"
+                                                    />
+                                                </div>
+                                                <div className="flex flex-1 items-center justify-between">
+                                                    <label htmlFor={`ing-${ing.id}`} className="font-medium cursor-pointer flex-1">
+                                                        {ing.name}
+                                                    </label>
+                                                    {ing.quantity || ing.unit &&
+                                                        <span className="text-gray-700 font-medium">
+                                                            {ing.quantity} <span className="text-gray-500">{ing.unit}</span>
+                                                        </span>
+                                                    }
                                                 </div>
                                             </li>
-                                        );
-                                    })}
-                                </ul>
+                                        ))}
+                                    </ul>
+                                </div>
                             </div>
                         )}
 
@@ -426,34 +436,74 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                             </>
                         )}
 
-                        {/* Multiple ingredients (search) */}
-                        {showMultipleIngredients && (
+                        {/* Optional ingredients list */}
+                        {type === 'dish' && optionalIngredients.length > 0 && (
                             <div className="mb-6">
+                                <h3 className="text-xl font-bold mb-4">Nguyên liệu tùy chọn</h3>
+                                <div className="bg-gray-50 rounded-lg p-3">
+                                    <ul className="divide-y divide-gray-200">
+                                        {optionalIngredients.map((ing, index) => (
+                                            <li key={index} className="flex items-start py-2">
+                                                <div className="flex items-center mr-3">
+                                                    <input
+                                                        type="checkbox"
+                                                        id={`opt-ing-${ing.id}`}
+                                                        checked={selectedOptionalIngredients[ing.id]} 
+                                                        onChange={() => toggleIngredient(ing.id, true)}
+                                                        className="w-4 h-4 text-green-600 border-gray-300 rounded"
+                                                    />
+                                                </div>
+                                                <div className="flex flex-1 items-center justify-between">
+                                                    <label htmlFor={`opt-ing-${ing.id}`} className="font-medium cursor-pointer flex-1">
+                                                        {ing.name}
+                                                    </label>
+                                                    {ing.quantity && ing.unit &&
+                                                        <span className="text-gray-700 font-medium">
+                                                            {ing.quantity} <span className="text-gray-500">{ing.unit}</span>
+                                                        </span>
+                                                    }
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Multiple ingredients display */}
+                        {showMultipleIngredients && (
+                            <div className="mb-8">
                                 <h3 className="text-xl font-bold mb-4">Nguyên liệu được nhận diện</h3>
                                 <ul className="space-y-2">
-                                    {itemData.map((item, idx) => (
-                                        <li key={idx} className="flex justify-between py-2 border-b border-gray-100">
-                                            <div className="flex items-center">
-                                                {item.image && (
-                                                    <img
-                                                        src={item.image}
-                                                        alt={item.vietnamese_name}
-                                                        className="w-8 h-8 rounded-full mr-2 object-cover"
-                                                        onError={(e) => { e.target.src = '/images/default-ingredient.jpg' }}
-                                                    />
+                                    {Array.isArray(itemData) && itemData.map((item, index) => (
+                                        <li key={index} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                                            <div className="flex">
+                                                {(item.image || item.imageUrl) && (
+                                                    <div className="w-8 h-8 flex-shrink-0 mr-2">
+                                                        <img
+                                                            src={item.imageUrl || item.image}
+                                                            alt={item.vietnamese_name || item.name}
+                                                            className="w-full h-full object-contain rounded-full"
+                                                            onError={(e) => {
+                                                                e.target.onerror = null;
+                                                                e.target.src = '/images/default-ingredient.jpg';
+                                                            }}
+                                                        />
+                                                    </div>
                                                 )}
                                                 <span className="font-medium">{item.vietnamese_name || item.name}</span>
                                             </div>
-                                            {item.quantity && item.unit && (
-                                                <span className="text-gray-700">
+                                            {item.quantity && item.unit &&
+                                                <span className="text-gray-700 font-medium">
                                                     {item.quantity} <span className="text-gray-500">{item.unit}</span>
                                                 </span>
-                                            )}
+                                            }
                                         </li>
                                     ))}
                                 </ul>
                             </div>
                         )}
+
                         {/* AI Components */}
                         {isAiResult && dishWithIngredients?.aiData && (
                             <>
@@ -461,71 +511,98 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                             </>
                         )}
 
-                        {/* Quantity controls */}
+                        {/* Quantity input with controls */}
                         <div className="mb-6">
-                            <label className="text-xl font-bold mb-4 block">Nhập số lượng mong muốn:</label>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-between mb-4">
+                                <label className="text-xl font-bold">
+                                    Nhập số lượng mong muốn:
+                                </label>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                {/* Decrease button */}
                                 <button
+                                    type="button"
                                     onClick={handleQuantityDecrease}
                                     disabled={quantity <= 1}
-                                    className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center disabled:opacity-50 hover:border-green-500"
+                                    className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:border-green-500 hover:text-green-600 transition-colors"
                                 >
                                     <span className="text-xl font-bold">−</span>
                                 </button>
+                                
+                                {/* Quantity input */}
                                 <input
-                                    type="number"
-                                    min="1"
+                                    type="number" 
+                                    min="1" 
                                     max={maxQuantity}
+                                    step="1" 
                                     value={quantity}
                                     onChange={(e) => handleQuantityChange(e.target.value)}
                                     className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-full text-center text-xl font-bold focus:border-green-500 focus:outline-none"
                                 />
+                                
+                                {/* Increase button */}
                                 <button
+                                    type="button"
                                     onClick={handleQuantityIncrease}
                                     disabled={quantity >= maxQuantity}
-                                    className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center disabled:opacity-50 hover:border-green-500"
+                                    className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:border-green-500 hover:text-green-600 transition-colors"
                                 >
                                     <span className="text-xl font-bold">+</span>
                                 </button>
-                                <div className="text-gray-500 font-medium min-w-[100px]">
+                                
+                                {/* Unit display */}
+                                <div className="ml-2 text-gray-500 font-medium min-w-[60px]">
                                     {getUnit()}
                                 </div>
                             </div>
+                            
+                            {/* Quantity warning */}
                             {quantity >= maxQuantity && (
-                                <p className="text-center text-sm text-orange-600 mt-2">Đã đạt số lượng tối đa</p>
+                                <div className="mt-2 text-center text-sm text-orange-600">
+                                    Đã đạt số lượng tối đa
+                                </div>
                             )}
                         </div>
 
                         {/* Add to cart button */}
                         <button
                             onClick={handleAddToCart}
-                            className="w-full bg-green-600 text-white py-4 rounded-full font-bold hover:bg-green-700 flex items-center justify-center"
+                            className="w-full bg-green-600 text-white py-4 rounded-full font-bold hover:bg-green-700 transition-colors flex items-center justify-center"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
+                            <span className="mr-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                            </span>
                             Thêm vào giỏ hàng
                         </button>
                     </div>
 
-                    {/* Right image */}
-                    <div className="flex-shrink-0 w-full md:w-64 flex items-center justify-center p-4">
-                        <div className="w-48 h-64 rounded-3xl bg-gray-100 flex items-center justify-center overflow-hidden">
+                    {/* Right image section */}
+                    <div className="flex-shrink-0 w-full md:w-64 flex justify-center p-4 pt-20">
+                        <div className="w-48 h-64 overflow-hidden rounded-3xl bg-gray-100 flex justify-center">
                             {image ? (
-                                <img
-                                    src={image}
-                                    alt={title}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                        e.target.style.display = 'none';
-                                        e.target.nextElementSibling.style.display = 'flex';
-                                    }}
-                                />
-                            ) : null}
-                            <div className={`flex-col items-center justify-center ${image ? 'hidden' : 'flex'}`}>
-                                <MdOutlineImageNotSupported className="h-16 w-16 text-gray-400 mb-2" />
-                                <span className="text-sm text-gray-400">Không có hình ảnh</span>
-                            </div>
+                                <>
+                                    <img
+                                        src={image}
+                                        alt={title}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            e.target.style.display = 'none';
+                                            e.target.nextElementSibling.style.display = 'flex';
+                                        }}
+                                    />
+                                    <div className="w-full h-full flex-col items-center justify-center hidden">
+                                        <MdOutlineImageNotSupported className="h-16 w-16 mb-2 text-gray-400" />
+                                        <span className="text-sm text-gray-400">Không có hình ảnh</span>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="text-gray-400 flex flex-col items-center justify-center">
+                                    <MdOutlineImageNotSupported className="h-16 w-16 mb-2" />
+                                    <span className="text-sm">Không có hình ảnh</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

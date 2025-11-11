@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FiChevronRight, FiChevronLeft, FiImage, FiMessageSquare, FiX, FiLoader } from 'react-icons/fi';
+import { toast } from 'react-toastify';
 import ProductCard from '../components/ingredients/ProductCard';
 import DishCard from '../components/DishCard';
 import Header from '../components/Header';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import AIHistory, { saveAIResultToHistory } from '../components/AIHistory';
 import { useModal } from '../context/ModalContext';
 import { ingredientService } from '../services/ingredientService';
 import { dishService } from '../services/dishService';
@@ -30,6 +32,14 @@ const HomePage = () => {
     const [aiLoading, setAiLoading] = useState(false);
     const [aiResult, setAiResult] = useState(null);
     const [aiError, setAiError] = useState(null);
+    // Streaming stepper for AI progress
+    const [aiStepIndex, setAiStepIndex] = useState(-1);
+    const aiSteps = [
+        'Xác thực thông tin',
+        'Đang phân tích',
+        'Trích xuất dữ liệu',
+        'Tổng hợp kết quả'
+    ];
 
     const ingredientsRef = useRef(null);
     const dishesRef = useRef(null);
@@ -54,6 +64,7 @@ const HomePage = () => {
                 console.error("Error fetching ingredients:", error);
                 setErrorIngredients("Không thể tải danh sách nguyên liệu");
                 setLoadingIngredients(false);
+                toast.error('Không thể tải danh sách nguyên liệu. Vui lòng thử lại!' );
             }
         };
 
@@ -76,6 +87,7 @@ const HomePage = () => {
                 console.error("Error fetching dishes:", error);
                 setErrorDishes("Không thể tải danh sách món ăn");
                 setLoadingDishes(false);
+                toast.error('Không thể tải danh sách món ăn. Vui lòng thử lại!' );
             }
         };
 
@@ -143,26 +155,56 @@ const HomePage = () => {
         e.preventDefault();
         if (!textInput.trim()) {
             setAiError("Vui lòng nhập mô tả món ăn");
+            toast.warning('Vui lòng nhập mô tả món ăn' );
             return;
         }
 
         try {
-            setAiLoading(true);
+            // Start streaming steps with fixed 8-second duration
             setAiError(null);
-            const response = await aiService.recipeAnalysis(textInput);
+            setAiLoading(true);
+            setAiStepIndex(0); // Xác thực thông tin
+
+            // Step 1: Validation (2 seconds)
+            await new Promise(r => setTimeout(r, 2000));
+
+            setAiStepIndex(1); // Đang phân tích
+            
+            // Step 2: Analysis (3 seconds) - Start API call here
+            const analysisPromise = aiService.recipeAnalysis(textInput);
+            await new Promise(r => setTimeout(r, 8000));
+
+            setAiStepIndex(2); // Trích xuất dữ liệu
+            
+            // Step 3: Data extraction (2 seconds)
+            await new Promise(r => setTimeout(r, 2000));
+
+            setAiStepIndex(3); // Tổng hợp kết quả
+            
+            // Step 4: Synthesis (1 second) - Wait for API response
+            const response = await analysisPromise;
+            await new Promise(r => setTimeout(r, 100));
 
             if (response) {
                 setAiResult(response);
+                // Save to history
+                saveAIResultToHistory(textInput, response, 'text');
+                toast.success('Phân tích món ăn thành công!' );
                 // Open modal with AI result
                 openModal('ai_result', response);
             } else {
                 setAiError("Không thể phân tích món ăn. Vui lòng thử lại.");
+                toast.error('Không thể phân tích món ăn. Vui lòng thử lại.');
             }
         } catch (error) {
             console.error("Error in text analysis:", error);
-            setAiError(error.response?.data?.error || "Đã xảy ra lỗi khi phân tích món ăn");
+            const errorMessage = error.response?.data?.error || "Đã xảy ra lỗi khi phân tích món ăn";
+            setAiError(errorMessage);
+            toast.error(errorMessage);
         } finally {
             setAiLoading(false);
+            // reset steps shortly after finish so UI returns to normal
+            setTimeout(() => setAiStepIndex(-1), 500);
         }
     };
 
@@ -172,6 +214,7 @@ const HomePage = () => {
             // Validate file size (max 10MB)
             if (file.size > 10 * 1024 * 1024) {
                 setAiError("Kích thước file quá lớn. Vui lòng chọn file nhỏ hơn 10MB");
+                toast.error('Kích thước file quá lớn. Vui lòng chọn file nhỏ hơn 10MB' );
                 return;
             }
 
@@ -179,6 +222,7 @@ const HomePage = () => {
             const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
             if (!allowedTypes.includes(file.type)) {
                 setAiError("Định dạng file không hợp lệ. Vui lòng chọn file JPG, PNG, WEBP hoặc GIF");
+                toast.error('Định dạng file không hợp lệ. Vui lòng chọn file JPG, PNG, WEBP hoặc GIF' );
                 return;
             }
 
@@ -189,6 +233,7 @@ const HomePage = () => {
             const reader = new FileReader();
             reader.onloadend = () => {
                 setImagePreview(reader.result);
+                toast.success('Đã tải hình ảnh thành công!');
             };
             reader.readAsDataURL(file);
         }
@@ -198,26 +243,56 @@ const HomePage = () => {
         e.preventDefault();
         if (!selectedImage) {
             setAiError("Vui lòng chọn hình ảnh");
+            toast.warning('Vui lòng chọn hình ảnh để phân tích');
             return;
         }
 
         try {
-            setAiLoading(true);
+            // Start streaming steps for image analysis with fixed 8-second duration
             setAiError(null);
-            const response = await aiService.uploadAndAnalyze(selectedImage, imageDescription || null);
+            setAiLoading(true);
+            setAiStepIndex(0); // Xác thực thông tin
 
-            if (response.success && response.result) {
-                setAiResult(response.result);
+            // Step 1: Validation (2 seconds)
+            await new Promise(r => setTimeout(r, 2000));
+
+            setAiStepIndex(1); // Đang phân tích
+            
+            // Step 2: Analysis (3 seconds) - Start API call here
+            const analysisPromise = aiService.uploadAndAnalyze(selectedImage);
+            await new Promise(r => setTimeout(r, 3000));
+
+            setAiStepIndex(2); // Trích xuất dữ liệu
+            
+            // Step 3: Data extraction (2 seconds)
+            await new Promise(r => setTimeout(r, 2000));
+
+            setAiStepIndex(3); // Tổng hợp kết quả
+            
+            // Step 4: Synthesis (1 second) - Wait for API response
+            const response = await analysisPromise;
+            await new Promise(r => setTimeout(r, 1000));
+
+            if (response) {
+                setAiResult(response);
+                // Save to history with image description or filename
+                const query = imageDescription || selectedImage.name || 'Phân tích hình ảnh';
+                saveAIResultToHistory(query, response, 'image');
+                toast.success('Phân tích hình ảnh thành công!');
                 // Open modal with AI result
-                openModal('ai_result', response.result);
+                openModal('ai_result', response);
             } else {
                 setAiError("Không thể phân tích hình ảnh. Vui lòng thử lại.");
+                toast.error('Không thể phân tích hình ảnh. Vui lòng thử lại.' );
             }
         } catch (error) {
             console.error("Error in image analysis:", error);
-            setAiError(error.response?.data?.error || "Đã xảy ra lỗi khi phân tích hình ảnh");
+            const errorMessage = error.response?.data?.error || "Đã xảy ra lỗi khi phân tích hình ảnh";
+            setAiError(errorMessage);
+            toast.error(errorMessage);
         } finally {
             setAiLoading(false);
+            setTimeout(() => setAiStepIndex(-1), 500);
         }
     };
 
@@ -228,6 +303,7 @@ const HomePage = () => {
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
+        toast.info('Đã xóa hình ảnh');
     };
 
     return (
@@ -319,6 +395,26 @@ const HomePage = () => {
                                         'Phân tích món ăn'
                                     )}
                                 </button>
+
+                                {/* Streaming stepper */}
+                                {aiLoading && aiStepIndex >= 0 && (
+                                    <div className="mt-3 p-3 bg-white/10 rounded-md border border-white/20">
+                                        <ul className="flex flex-col sm:flex-row sm:space-x-4 gap-2 text-sm">
+                                            {aiSteps.map((s, i) => (
+                                                <li key={s} className={`flex items-center gap-2 ${i === aiStepIndex ? 'text-orange-500 font-medium' : 'text-white/60'}`}>
+                                                    <span className={`w-3 h-3 rounded-full flex items-center justify-center ${i === aiStepIndex ? 'bg-orange-500' : 'bg-white/30'}`}>
+                                                        {i === aiStepIndex ? (
+                                                            <FiLoader className="text-white w-3 h-3 animate-spin" />
+                                                        ) : (
+                                                            <span className="text-xs">{i+1}</span>
+                                                        )}
+                                                    </span>
+                                                    <span>{s}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
                             </form>
                         )}
 
@@ -382,6 +478,26 @@ const HomePage = () => {
                                         'Phân tích hình ảnh'
                                     )}
                                 </button>
+
+                                {/* Streaming stepper for image tab */}
+                                {aiLoading && aiStepIndex >= 0 && (
+                                    <div className="mt-3 p-3 bg-white/10 rounded-md border border-white/20">
+                                        <ul className="flex flex-col sm:flex-row sm:space-x-4 gap-2 text-sm">
+                                            {aiSteps.map((s, i) => (
+                                                <li key={s} className={`flex items-center gap-2 ${i === aiStepIndex ? 'text-orange-500 font-medium' : 'text-white/60'}`}>
+                                                    <span className={`w-3 h-3 rounded-full flex items-center justify-center ${i === aiStepIndex ? 'bg-orange-500' : 'bg-white/30'}`}>
+                                                        {i === aiStepIndex ? (
+                                                            <FiLoader className="text-white w-3 h-3 animate-spin" />
+                                                        ) : (
+                                                            <span className="text-xs">{i+1}</span>
+                                                        )}
+                                                    </span>
+                                                    <span>{s}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
                             </form>
                         )}
 
@@ -399,6 +515,9 @@ const HomePage = () => {
             </section>
 
             <div className="container mx-auto px-4 py-4">
+                {/* AI History Section */}
+                <AIHistory />
+
                 {/* Ingredients Section */}
                 <section className="mb-8" id="ingredients-section">
                     <h2 className="text-2xl font-bold text-gray-800 mb-4">Danh sách thực phẩm</h2>

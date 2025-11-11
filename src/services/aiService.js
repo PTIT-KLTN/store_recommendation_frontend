@@ -16,16 +16,12 @@ export const aiService = {
         }
     },
 
-    uploadAndAnalyze: async (imageFile, description = null) => {
+    uploadAndAnalyze: async (imageFile) => {
         const formData = new FormData();
         formData.append('image', imageFile);
-        
-        if (description) {
-            formData.append('description', description);
-        }
 
         try {
-            const response = await axiosPublic.options('/ai/upload-and-analyze', formData, {
+            const response = await axiosPublic.post('/ai/upload-and-analyze', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }

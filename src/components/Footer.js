@@ -22,7 +22,7 @@ export const Footer = () => {
                     {/* Nhóm phát triển */}
                     <div className="md:w-2/5">
                         <h3 className="text-xl font-bold mb-4 pb-2 border-b border-green-500">
-                            ĐỒ ÁN THỰC TẬP TỐT NGHIỆP
+                            KHOÁ LUẬN TỐT NGHIỆP
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           

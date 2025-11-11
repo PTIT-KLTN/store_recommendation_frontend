@@ -20,10 +20,13 @@ export const BasketProvider = ({ children }) => {
             try {
                 const parsedBasket = JSON.parse(storedBasket);
 
+                // Normalize stored basket: ensure quantities are numbers and image/imageUrl exist
                 const processedBasket = {
                     ingredients: (parsedBasket.ingredients || []).map(item => ({
                         ...item,
-                        quantity: parseFloat(item.quantity) || 1
+                        quantity: parseFloat(item.quantity) || 1,
+                        image: item.image || item.imageUrl || null,
+                        imageUrl: item.imageUrl || item.image || null
                     })),
                     dishes: { ...(parsedBasket.dishes || {}) }
                 };
@@ -36,7 +39,9 @@ export const BasketProvider = ({ children }) => {
                     if (dish.ingredients) {
                         dish.ingredients = dish.ingredients.map(ingredient => ({
                             ...ingredient,
-                            quantity: parseFloat(ingredient.quantity) || 1
+                            quantity: parseFloat(ingredient.quantity) || 1,
+                            image: ingredient.image || ingredient.imageUrl || null,
+                            imageUrl: ingredient.imageUrl || ingredient.image || null
                         }));
                     }
                 });
@@ -87,7 +92,9 @@ export const BasketProvider = ({ children }) => {
 
             const processedIngredientData = {
                 ...ingredientData,
-                quantity: parseFloat(ingredientData.quantity) || 0.1
+                quantity: parseFloat(ingredientData.quantity) || 0.1,
+                image: ingredientData.image || ingredientData.imageUrl || null,
+                imageUrl: ingredientData.imageUrl || ingredientData.image || null
             };
 
             const existingIndex = basketItems.ingredients.findIndex(
@@ -137,7 +144,9 @@ export const BasketProvider = ({ children }) => {
                 servings: Math.max(1, parseInt(dishData.servings, 10) || 1),
                 ingredients: dishData.ingredients ? dishData.ingredients.map(ingredient => ({
                     ...ingredient,
-                    quantity: parseFloat(ingredient.quantity) || 1
+                    quantity: parseFloat(ingredient.quantity) || 1,
+                    image: ingredient.image || ingredient.imageUrl || null,
+                    imageUrl: ingredient.imageUrl || ingredient.image || null
                 })) : []
             };
 

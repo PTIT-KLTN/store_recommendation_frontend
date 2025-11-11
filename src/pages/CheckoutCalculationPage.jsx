@@ -10,6 +10,7 @@ import { toast } from 'react-toastify';
 import axios from 'axios';
 import SimilarProductsModal from '../components/SimilarProductsModal';
 import { userService } from '../services/userService';
+import { IngredientImage } from '../utils/imageUtils';
 
 const CheckoutCalculation = () => {
     const location = useLocation();
@@ -36,13 +37,40 @@ const CheckoutCalculation = () => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const storedBasket = localStorage.getItem('basketItems');
-
-                if (storedBasket) {
-                    const parsedBasket = JSON.parse(storedBasket);
-                    setBasketItems(parsedBasket);
-                    combineIngredients(parsedBasket);
+                // Try to get basket data from multiple sources
+                let basketData = null;
+                
+                // First, try to get from the debug payload (most recent format)
+                const debugPayload = localStorage.getItem('debug_calculate_payload');
+                if (debugPayload) {
+                    try {
+                        basketData = JSON.parse(debugPayload);
+                        console.log("Using debug payload from localStorage:", basketData);
+                    } catch (e) {
+                        console.error("Error parsing debug payload:", e);
+                    }
                 }
+                
+                // Fallback to regular basket items
+                if (!basketData) {
+                    const storedBasket = localStorage.getItem('basketItems');
+                    if (storedBasket) {
+                        try {
+                            basketData = JSON.parse(storedBasket);
+                            console.log("Using stored basket from localStorage:", basketData);
+                        } catch (e) {
+                            console.error("Error parsing stored basket:", e);
+                        }
+                    }
+                }
+                
+                // Set default if no data found
+                if (!basketData) {
+                    basketData = { ingredients: [], dishes: [] };
+                }
+
+                setBasketItems(basketData);
+                combineIngredients(basketData);
 
                 // Load favourite stores
                 try {
@@ -209,41 +237,50 @@ const CheckoutCalculation = () => {
         const combined = {};
 
         // Process standalone ingredients
-        if (basket.ingredients && basket.ingredients.length > 0) {
+        if (basket.ingredients && Array.isArray(basket.ingredients) && basket.ingredients.length > 0) {
             basket.ingredients.forEach(item => {
-                const key = item.name;
+                const key = item.name || item.vietnamese_name;
                 if (!combined[key]) {
                     combined[key] = {
                         id: item.id,
-                        name: item.name,
-                        vietnamese_name: item.vietnamese_name,
-                        image: item.image,
+                        name: item.name || item.vietnamese_name,
+                        vietnamese_name: item.vietnamese_name || item.name,
+                        image: item.imageUrl || item.image,
                         unit: item.unit,
                         category: item.category,
-                        totalQuantity: parseFloat(item.quantity)
+                        totalQuantity: parseFloat(item.quantity || 0)
                     };
                 } else {
-                    combined[key].totalQuantity += parseFloat(item.quantity);
+                    combined[key].totalQuantity += parseFloat(item.quantity || 0);
                 }
             });
         }
 
         // Process dish ingredients
         if (basket.dishes) {
-            Object.values(basket.dishes).forEach(dish => {
-                if (dish.ingredients && dish.ingredients.length > 0) {
-                    const servings = parseInt(dish.servings, 10);
+            let dishesArray = [];
+            
+            // Handle both object and array formats
+            if (Array.isArray(basket.dishes)) {
+                dishesArray = basket.dishes;
+            } else if (typeof basket.dishes === 'object') {
+                dishesArray = Object.values(basket.dishes);
+            }
+
+            dishesArray.forEach(dish => {
+                if (dish.ingredients && Array.isArray(dish.ingredients) && dish.ingredients.length > 0) {
+                    const servings = parseInt(dish.servings || 1, 10);
 
                     dish.ingredients.forEach(item => {
-                        const key = item.name;
-                        const dishQuantity = parseFloat(item.quantity) * servings;
+                        const key = item.name || item.vietnamese_name;
+                        const dishQuantity = parseFloat(item.quantity || 0) * servings;
                         
                         if (!combined[key]) {
                             combined[key] = {
                                 id: item.id,
-                                name: item.name,
-                                vietnamese_name: item.vietnamese_name,
-                                image: item.imageUrl,
+                                name: item.name || item.vietnamese_name,
+                                vietnamese_name: item.vietnamese_name || item.name,
+                                image: item.imageUrl || item.image,
                                 unit: item.unit,
                                 category: item.category,
                                 totalQuantity: dishQuantity
@@ -582,21 +619,20 @@ const CheckoutCalculation = () => {
                                 <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
                                     {combinedIngredients.length > 0 ? (
                                         combinedIngredients.map((item) => (
-                                            <div key={item.id} className="flex items-center border-b pb-4">
-                                                <div className="w-16 h-16 mr-4 flex-shrink-0 bg-gray-50 p-1 rounded">
-                                                    <img
-                                                        src={item.image}
-                                                        alt={item.name}
+                                            <div key={item.id || item.name} className="flex items-center border-b pb-4">
+                                                <div className="w-16 h-16 mr-4 flex-shrink-0 bg-gray-50 p-1 rounded relative">
+                                                    <IngredientImage 
+                                                        item={item}
                                                         className="w-full h-full object-contain"
-                                                        onError={(e) => {
-                                                            e.target.onerror = null;
-                                                            e.target.src = '/images/default-ingredient.jpg';
-                                                        }}
+                                                        placeholderClassName="w-full h-full text-sm"
+                                                        size={64}
                                                     />
                                                 </div>
                                                 <div className="flex-grow">
-                                                    <div className="font-medium text-gray-800">{item.vietnamese_name}</div>
-                                                    <div className="text-sm text-gray-500">{item.name}</div>
+                                                    <div className="font-medium text-gray-800">{item.vietnamese_name || item.name}</div>
+                                                    {item.vietnamese_name && item.name && item.vietnamese_name !== item.name && (
+                                                        <div className="text-sm text-gray-500">{item.name}</div>
+                                                    )}
                                                     <div className="text-gray-600 text-sm mt-1 font-semibold">
                                                         {item.totalQuantity} x {item.unit}
                                                     </div>

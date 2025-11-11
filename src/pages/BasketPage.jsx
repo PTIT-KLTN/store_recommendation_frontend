@@ -8,7 +8,7 @@ import IngredientSection from '../components/basket/IngredientSection';
 import DishSection from '../components/basket/DishSection';
 import SaveBasketDialog from '../components/basket/SaveBasketDialog';
 import { useBasket } from '../context/BasketContext';
-import { basketService } from '../services/basketService';
+import { basketService, formatBasketData } from '../services/basketService';
 import { toast } from 'react-toastify';
 import { FiPlusCircle } from "react-icons/fi";
 import { HiOutlineCalculator } from "react-icons/hi";
@@ -229,7 +229,6 @@ const BasketPage = () => {
     };
 
     const handleCalculateCart = async () => {
-
         // check user location & basket before calling api 
         try {
             setCalculating(true);
@@ -237,16 +236,33 @@ const BasketPage = () => {
             if (syncStatus !== 'synced') {
                 await updateBasket();
             }
+            
+            // DEBUG: log formatted payload that would be sent to the backend
+            try {
+                const debugPayload = formatBasketData(basketItems || { ingredients: [], dishes: [] });
+                console.log('DEBUG calculate payload (formatBasketData):', JSON.stringify(debugPayload, null, 2));
+                localStorage.setItem('debug_calculate_payload', JSON.stringify(debugPayload, null, 2));
+                
+                // Send the formatted payload to the calculate endpoint
+                const result = await basketService.calculateBasketWithPayload(debugPayload);
+                console.log('DEBUG calculate response:', result);
+                toast.success("Đã tính toán giỏ hàng thành công!");
 
-            const result = await basketService.calculateBasket();
-            toast.success("Đã tính toán giỏ hàng thành công!");
+                navigate('/calculate', { state: { calculationResult: result } });
+            } catch (e) {
+                console.error('Error preparing debug payload:', e);
+                // Fallback to original method if formatting fails
+                const result = await basketService.calculateBasket();
+                console.log('DEBUG calculate response (fallback):', result);
+                toast.success("Đã tính toán giỏ hàng thành công!");
 
-            navigate('/calculate', { state: { calculationResult: result } });
+                navigate('/calculate', { state: { calculationResult: result } });
+            }
 
             setCalculating(false);
         } catch (error) {
             console.error("Error calculating basket:", error);
-            toast.error(error.data.message);
+            toast.error(error.data?.message || "Có lỗi xảy ra khi tính toán");
             setCalculating(false);
         }
     };
@@ -266,35 +282,6 @@ const BasketPage = () => {
         return ingredientCount + dishIngredientsCount;
     };
 
-    // const renderSyncStatus = () => {
-    //     if (syncStatus === 'pending') {
-    //         return (
-    //             <div className="text-yellow-600 text-xs flex items-center">
-    //                 <div className="animate-spin h-3 w-3 border-t-2 border-b-2 border-yellow-600 rounded-full mr-1"></div>
-    //                 Đang đồng bộ...
-    //             </div>
-    //         );
-    //     } else if (syncStatus === 'error') {
-    //         return (
-    //             <div className="text-red-600 text-xs flex items-center">
-    //                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    //                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    //                 </svg>
-    //                 Đồng bộ thất bại
-    //             </div>
-    //         );
-    //     } else {
-    //         return (
-    //             <div className="text-green-600 text-xs flex items-center">
-    //                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    //                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-    //                 </svg>
-    //                 Đã đồng bộ
-    //             </div>
-    //         );
-    //     }
-    // };
-
     return (
         <div className="min-h-screen bg-gray-50">
             <Header />
@@ -302,9 +289,6 @@ const BasketPage = () => {
 
             <div className="container mx-auto px-4 py-8">
                 <BasketHeader saveCart={openSaveDialog} />
-                {/* <div className="mb-2 flex justify-end">
-                    {renderSyncStatus()}
-                </div> */}
 
                 {loading || calculating ? (
                     <div className="bg-white p-8 flex justify-center">

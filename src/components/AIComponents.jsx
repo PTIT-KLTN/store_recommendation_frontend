@@ -32,7 +32,7 @@ export const AISuggestions = ({ suggestions, selectedSuggestions, onToggle }) =>
             <h4 className="text-lg font-bold text-gray-900 mb-2">Gợi ý bổ sung ({suggestions.length})</h4>
             <div className="space-y-1">
                 {suggestions.map((sug, idx) => {
-                    const key = sug.ingredient_id || sug.name_vi;
+                    const key = sug.ingredient_id || sug.vietnamese_name;
                     const isSelected = selectedSuggestions[key];
                     
                     return (
@@ -53,12 +53,19 @@ export const AISuggestions = ({ suggestions, selectedSuggestions, onToggle }) =>
                                 onClick={(e) => e.stopPropagation()}
                             />
                             <div className="flex-1 min-w-0">
-                                <div className="text-sm">
-                                    <span className="font-medium text-gray-800">{sug.name_vi}</span>
-                                    {sug.name_en && <span className="text-gray-500 text-xs ml-1">({sug.name_en})</span>}
+                                <div className="flex items-center justify-between">
+                                    <div className="text-sm flex-1">
+                                        <span className="font-medium text-gray-800">{sug.vietnamese_name}</span>
+                                        {sug.name && <span className="text-gray-500 text-xs ml-1">({sug.name})</span>}
+                                    </div>
+                                    {sug.quantity || sug.unit && (
+                                        <span className="text-gray-700 font-medium text-sm ml-2">
+                                            {sug.quantity}
+                                        </span>
+                                    )}
                                 </div>
-                                {sug.reason && (
-                                    <p className="text-gray-600 text-xs mt-0.5 leading-snug">{sug.reason}</p>
+                                {sug.category && (
+                                    <p className="text-gray-500 text-xs mt-0.5 italic">{sug.category}</p>
                                 )}
                             </div>
                         </div>

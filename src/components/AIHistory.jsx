@@ -129,7 +129,12 @@ const AIHistory = () => {
                                         </span>
                                     </div>
                                     <h4 className="font-semibold text-gray-800 mb-1">
-                                        {item.result?.dish?.name || 'Món ăn'}
+                                        {item.result?.dish?.vietnamese_name || 'Món ăn'}
+                                        {item.result?.dish?.name && (
+                                            <span className="text-sm text-gray-500 font-normal ml-2">
+                                                ({item.result.dish.name})
+                                            </span>
+                                        )}
                                     </h4>
                                     <p className="text-sm text-gray-600 line-clamp-2">
                                         {item.query}

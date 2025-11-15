@@ -5,6 +5,8 @@ import { toast } from 'react-toastify';
 import { useBasket } from '../context/BasketContext';
 import { AIWarnings, AISuggestions, AISimilarDishes } from './AIComponents';
 
+const S3_BASE_URL = 'https://recipe-images-bucket-v1.s3.us-east-1.amazonaws.com';
+
 const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
     const [quantity, setQuantity] = useState(1);
     const [dishWithIngredients, setDishWithIngredients] = useState(null);
@@ -35,19 +37,24 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                     return;
                 }
 
-                // Convert AI result to dish format
+                // Convert AI result to dish format - FIXED STRUCTURE
                 if (itemData.cart && itemData.cart.items) {
+                    // s3_key is at result level, not in dish
+                    const dishImageUrl = itemData.s3_key ? `${S3_BASE_URL}/${itemData.s3_key}` : null;
+                    console.log('Result s3_key:', itemData.s3_key);
+                    console.log('Dish image URL:', dishImageUrl);
+                    
                     const aiDish = {
                         id: 'ai_' + Date.now(),
                         name: itemData.dish.name,
-                        vietnamese_name: itemData.dish.name,
-                        image: null,
+                        vietnamese_name: itemData.dish.vietnamese_name || itemData.dish.name,
+                        image: dishImageUrl,
                         servings: itemData.dish?.servings || 1,
                         ingredients: itemData.cart.items.map(item => ({
                             _id: item.ingredient_id,
-                            ingredient_name: item.name_vi,
-                            vietnamese_name: item.name_vi,
-                            image: null,
+                            ingredient_name: item.name,
+                            vietnamese_name: item.vietnamese_name,
+                            image: null, // Ingredients don't have s3_key
                             quantity: item.quantity,
                             unit: item.unit,
                             category: item.category
@@ -65,16 +72,16 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                     // Auto-select all main ingredients
                     const initialSelected = {};
                     aiDish.ingredients.forEach(ing => {
-                        const key = ing.ingredient_name;
+                        const key = ing._id; // Use _id as consistent key
                         initialSelected[key] = true;
                     });
                     setSelectedIngredients(initialSelected);
 
-                    // Auto-select suggestions
+                    // Initialize suggestions selection state (default to false)
                     const initialSuggestions = {};
                     if (itemData.suggestions) {
                         itemData.suggestions.forEach(sug => {
-                            const key = sug.ingredient_id || sug.name_vi;
+                            const key = sug.ingredient_id;
                             initialSuggestions[key] = false;
                         });
                     }
@@ -171,19 +178,18 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
     const handleAddToCart = async () => {
         try {
             if ((type === 'dish' || isAiResult) && dishWithIngredients) {
-                // FIX 3: Use ingredient_name for filtering
-
                 const selectedMainIngredients = (dishWithIngredients.ingredients || [])
                     .filter(ing => {
-                        const key = ing.ingredient_name;
+                        // For AI results use _id, for regular dishes use ingredient_name
+                        const key = isAiResult ? ing._id : ing.ingredient_name;
                         return selectedIngredients[key];
                     })
                     .map(ingredient => ({
-                        id: ingredient._id, // Use _id from MongoDB
+                        id: ingredient.id || ingredient.ingredient_id,
                         name: ingredient.ingredient_name || ingredient.name,
                         vietnamese_name: ingredient.vietnamese_name,
                         imageUrl: ingredient.image,
-                        net_unit_value: ingredient.net_unit_value,
+                        net_unit_value: ingredient.net_unit_value || 100,
                         quantity: ingredient.quantity,
                         unit: ingredient.unit,
                         category: ingredient.category
@@ -191,11 +197,11 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
 
                 const selectedOptIngredients = (dishWithIngredients.optionalIngredients || [])
                     .filter(ing => {
-                        const key = ing.ingredient_name;
+                        const key = ing._id || ing.ingredient_name;
                         return selectedOptionalIngredients[key];
                     })
                     .map(ingredient => ({
-                        id: ingredient._id, // Use _id from MongoDB
+                        id: ingredient._id,
                         name: ingredient.ingredient_name,
                         vietnamese_name: ingredient.vietnamese_name,
                         imageUrl: ingredient.image,
@@ -209,16 +215,16 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                 const selectedSuggestionsArray = [];
                 if (isAiResult && dishWithIngredients.aiData?.suggestions) {
                     dishWithIngredients.aiData.suggestions.forEach(sug => {
-                        const key = sug.ingredient_id || sug.name_vi;
+                        const key = sug.ingredient_id;
                         if (selectedSuggestions[key]) {
                             selectedSuggestionsArray.push({
                                 id: sug.ingredient_id,
-                                name: sug.name_en,
-                                vietnamese_name: sug.name_vi,
+                                name: sug.name,
+                                vietnamese_name: sug.vietnamese_name,
                                 imageUrl: null,
                                 net_unit_value: sug.net_unit_value || 100,
-                                quantity: sug.quantity || 100,
-                                unit: sug.unit || 'gram',
+                                quantity: sug.quantity || '100',
+                                unit: sug.unit || 'g',
                                 category: sug.category
                             });
                         }
@@ -298,15 +304,17 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
         title = dishWithIngredients.vietnamese_name || dishWithIngredients.name;
         image = dishWithIngredients.imageUrl || dishWithIngredients.image;
         ingredients = (dishWithIngredients.ingredients || []).map(ing => ({
-            id: ing.ingredient_name, // Use ingredient_name as unique key
-            name: ing.vietnamese_name,
+            // For AI results: use _id, for regular dishes: use ingredient_name
+            id: isAiResult ? ing._id : ing.ingredient_name,
+            vietnamese_name: ing.vietnamese_name,
+            name: ing.ingredient_name || ing.name,
             category: ing.category,
-            quantity: ing.quantity,
+            quantity: typeof ing.quantity === 'string' ? ing.quantity : ing.unit,
             unit: ing.unit
         }));
 
         optionalIngredients = (dishWithIngredients.optionalIngredients || []).map(ing => ({
-            id: ing.ingredient_name, // Use ingredient_name as unique key
+            id: ing._id || ing.ingredient_name,
             name: ing.vietnamese_name,
             category: ing.category,
             quantity: ing.quantity,
@@ -397,25 +405,25 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                                 <div className="bg-gray-50 rounded-lg p-3">
                                     <ul className="divide-y divide-gray-200">
                                         {ingredients.map((ing, index) => (
-                                            <li key={index} className="flex items-start pt-2">
+                                            <li key={index} className="flex py-2">
                                                 <div className="flex items-center mr-3">
                                                     <input
                                                         type="checkbox"
                                                         id={`ing-${ing.id}`}
-                                                        checked={selectedIngredients[ing.id]} // FIX 4: Use ing.id consistently
+                                                        checked={selectedIngredients[ing.id]}
                                                         onChange={() => toggleIngredient(ing.id)}
                                                         className="w-4 h-4 text-green-600 border-gray-300 rounded"
                                                     />
                                                 </div>
                                                 <div className="flex flex-1 items-center justify-between">
                                                     <label htmlFor={`ing-${ing.id}`} className="font-medium cursor-pointer flex-1">
-                                                        {ing.name}
+                                                        {ing.vietnamese_name}
                                                     </label>
-                                                    {ing.quantity || ing.unit &&
-                                                        <span className="text-gray-700 font-medium">
-                                                            {ing.quantity} <span className="text-gray-500">{ing.unit}</span>
+                                                    {ing.quantity && (
+                                                        <span className="text-gray-700 font-medium ml-2">
+                                                            {ing.quantity}
                                                         </span>
-                                                    }
+                                                    )}
                                                 </div>
                                             </li>
                                         ))}

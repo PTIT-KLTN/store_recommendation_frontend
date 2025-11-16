@@ -189,7 +189,7 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                         name: ingredient.ingredient_name || ingredient.name,
                         vietnamese_name: ingredient.vietnamese_name,
                         imageUrl: ingredient.image,
-                        net_unit_value: ingredient.net_unit_value || 100,
+                        net_unit_value: ingredient.net_unit_value || 1,
                         quantity: ingredient.quantity,
                         unit: ingredient.unit,
                         category: ingredient.category
@@ -222,8 +222,8 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
                                 name: sug.name,
                                 vietnamese_name: sug.vietnamese_name,
                                 imageUrl: null,
-                                net_unit_value: sug.net_unit_value || 100,
-                                quantity: sug.quantity || '100',
+                                net_unit_value: sug.net_unit_value || 1,
+                                quantity: sug.quantity || '1',
                                 unit: sug.unit || 'g',
                                 category: sug.category
                             });
@@ -301,7 +301,7 @@ const ShoppingModal = ({ isOpen, onClose, type, itemData, searchQuery }) => {
     let showMultipleIngredients = false;
 
     if ((type === 'dish' || isAiResult) && dishWithIngredients) {
-        title = dishWithIngredients.vietnamese_name || dishWithIngredients.name;
+        title = dishWithIngredients.vietnamese_name || dishWithIngredients.ingredient_name;
         image = dishWithIngredients.imageUrl || dishWithIngredients.image;
         ingredients = (dishWithIngredients.ingredients || []).map(ing => ({
             // For AI results: use _id, for regular dishes: use ingredient_name

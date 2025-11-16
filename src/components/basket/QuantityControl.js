@@ -1,30 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { FiTrash2 } from 'react-icons/fi';
 
-const QuantityControl = ({
-    item, 
-    isDishIngredient = false, 
-    dishId = null, 
-    updateQuantity, 
-    removeItem
-}) => {
-    const [inputValue, setInputValue] = useState(item.quantity);
+const QuantityControl = ({ item,  isDishIngredient = false,  dishId = null, updateQuantity,  removeItem}) => {
+    // Extract quantity value and unit from item.unit string (e.g., "5 g" -> value: 5, unit: "g")
+    const extractUnitInfo = () => {
+        if (!item.unit) return { value: '1', unit: 'g' };
+        
+        const cleanedUnit = item.unit.replace(/[()]/g, '').trim().toLowerCase();
+        
+        // Handle "tuỳ thích" or "tùy thích" case
+        if (cleanedUnit === 'tuỳ thích' || cleanedUnit === 'tùy thích') {
+            return { value: '1', unit: 'g' };
+        }
+        
+        const parts = cleanedUnit.split(/\s+/);
+        if (parts.length >= 2) {
+            return { value: parts[0], unit: parts.slice(1).join(' ') };
+        }
+        return { value: cleanedUnit, unit: '' };
+    };
+
+    const { value: unitValue, unit: unitName } = extractUnitInfo();
+    const [inputValue, setInputValue] = useState(unitValue);
 
     useEffect(() => {
-        setInputValue(item.quantity);
-    }, [item.quantity]);
+        const { value } = extractUnitInfo();
+        setInputValue(value);
+    }, [item.unit]);
 
     const handleInputChange = (e) => {
         setInputValue(e.target.value);
     };
 
     const handleBlur = () => {
-        const newQuantity = parseFloat(inputValue);
+        const newValue = parseFloat(inputValue);
 
-        if (isNaN(newQuantity) || newQuantity < 1) {
-            setInputValue(item.quantity);
+        if (isNaN(newValue) || newValue < 0.1) {
+            const { value } = extractUnitInfo();
+            setInputValue(value);
         } else {
-            updateQuantity(item.id, newQuantity, isDishIngredient, dishId);
+            const newUnit = `${newValue} ${unitName}`;
+            setInputValue(newValue);
         }
     };
 
@@ -35,15 +51,15 @@ const QuantityControl = ({
     };
 
     const handleDecrease = () => {
-        const currentQuantity = parseFloat(item.quantity) || 0;
-        const newQuantity = Math.max(1, currentQuantity - 1);
-        updateQuantity(item.id, parseFloat(newQuantity.toFixed(1)), isDishIngredient, dishId);
+        const currentValue = parseFloat(inputValue) || 0;
+        const newValue = Math.max(0.1, currentValue - 1);
+        setInputValue(newValue);
     };
 
     const handleIncrease = () => {
-        const currentQuantity = parseFloat(item.quantity) || 0;
-        const newQuantity = currentQuantity + 1;
-        updateQuantity(item.id, parseFloat(newQuantity.toFixed(1)), isDishIngredient, dishId);
+        const currentValue = parseFloat(inputValue) || 0;
+        const newValue = currentValue + 1;
+        setInputValue(newValue);
     };
 
     const handleRemove = () => {
@@ -57,40 +73,44 @@ const QuantityControl = ({
     };
 
     return (
-        <div className="flex items-center">
-            <button
-                onClick={handleDecrease}
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-black text-white hover:bg-gray-800 transition-colors"
-            >
-                <span className="text-base">−</span>
-            </button>
+        <div className="flex items-center gap-4">
+            <div className="flex items-center bg-white border border-gray-300 rounded-full px-4 py-2 gap-3">
+                <button
+                    onClick={handleDecrease}
+                    className="text-gray-700 hover:text-gray-900 transition-colors text-xl font-medium"
+                >
+                    −
+                </button>
 
-            <input
-                type="number"
-                min="1"
-                step="1"
-                value={inputValue}
-                onChange={handleInputChange}
-                onBlur={handleBlur}
-                onKeyPress={handleKeyPress}
-                className="mx-3 px-4 py-2 bg-white border border-gray-300 rounded-full text-center w-24 text-base font-medium"
-                aria-label="Quantity"
-            />
+                <div className="flex items-center gap-1">
+                    <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={inputValue}
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                        onKeyPress={handleKeyPress}
+                        className="text-center w-12 text-base font-medium bg-transparent border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        aria-label="Quantity"
+                    />
+                    
+                    <span className="font-medium text-base">
+                        {unitName}
+                    </span>
+                </div>
 
-            <button
-                onClick={handleIncrease}
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-black text-white hover:bg-gray-800 transition-colors"
-            >
-                <span className="text-base">+</span>
-            </button>
-
-            <span className="ml-6 font-medium text-base">
-                {item.unit}
-            </span>
+                <button
+                    onClick={handleIncrease}
+                    className="text-gray-700 hover:text-gray-900 transition-colors text-xl font-medium"
+                >
+                    +
+                </button>
+            </div>
 
             <button
                 onClick={handleRemove}
-                className="ml-8 w-10 h-10 flex items-center justify-center bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                className="w-10 h-10 flex items-center justify-center bg-white border border-gray-300 text-red-500 rounded-full hover:bg-red-50 hover:border-red-300 transition-colors"
                 title={isDishIngredient ? "Xóa nguyên liệu khỏi món ăn" : "Xóa nguyên liệu"}
             >
                 <FiTrash2 size={20} />

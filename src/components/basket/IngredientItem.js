@@ -1,13 +1,7 @@
 import React from 'react';
 import QuantityControl from './QuantityControl';
 
-const IngredientItem = ({
-    item, 
-    isDishIngredient = false, 
-    dishId = null, 
-    updateQuantity, 
-    removeItem
-}) => {
+const IngredientItem = ({ item, isDishIngredient = false, dishId = null, updateQuantity, removeItem}) => {
     // For dish ingredients, use 'name' as identifier
     // For standalone ingredients, use 'id'
     const itemIdentifier = isDishIngredient ? item.name : item.id;
@@ -28,7 +22,8 @@ const IngredientItem = ({
                     </div>
                 ) : (
                     // Show a compact badge for items without images to avoid empty space
-                    <div className={`flex items-center justify-center ml-4 mr-4 h-16 w-16 rounded-full font-semibold ${item.ai_source ? 'bg-orange-50 border border-orange-200 text-orange-700' : 'bg-gray-100 border border-gray-200 text-gray-600'}`} title={item.ai_source ? 'Nguyên liệu từ AI' : 'Không có ảnh'}>
+                    <div className={`flex items-center justify-center ml-4 mr-4 h-16 w-16 rounded-full font-semibold
+                        ${item.ai_source ? 'bg-orange-50 border border-orange-200 text-orange-700' : 'bg-gray-100 border border-gray-200 text-gray-600'}`} title={item.ai_source ? 'Nguyên liệu từ AI' : 'Không có ảnh'}>
                         <span className="text-lg">
                             {(() => {
                                 const name = item.vietnamese_name || item.name || '';
@@ -41,7 +36,7 @@ const IngredientItem = ({
                     </div>
                 )}
                 <div>
-                    <p className="text-lg font-medium">
+                    <p className="text-md font-medium">
                         {item.vietnamese_name || item.name}
                     </p>
                     {item.name && item.vietnamese_name && item.name !== item.vietnamese_name && (

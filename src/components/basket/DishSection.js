@@ -71,7 +71,7 @@ const DishItem = ({
                         </div>
                     )}
                     <div>
-                        <h3 className="font-medium text-lg text-gray-800">{dish.name}</h3>
+                        <h4 className="font-medium text-lg text-gray-800">{dish.vietnamese_name}</h4>
                         <p className="text-sm text-gray-600">
                             {dish.ingredients?.length || 0} nguyên liệu
                         </p>
